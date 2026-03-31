@@ -45,8 +45,11 @@ export async function POST(request: NextRequest) {
       .select()
 
     if (periodError || !period || period.length === 0) {
+      console.error('Period insert error:', JSON.stringify(periodError))
+      console.error('Parsed dates:', JSON.stringify({ period_start: parsed.period_start, period_end: parsed.period_end, check_date: parsed.check_date, run_date: parsed.run_date }))
+      console.error('Parsed totals:', JSON.stringify(parsed.totals))
       return NextResponse.json(
-        { error: 'Failed to create payroll period' },
+        { error: 'Failed to create payroll period', detail: periodError?.message || 'No data returned', parsed_dates: { period_start: parsed.period_start, period_end: parsed.period_end, check_date: parsed.check_date } },
         { status: 500 }
       )
     }
@@ -54,6 +57,7 @@ export async function POST(request: NextRequest) {
     const payrollPeriodId = period[0].id
 
     // Upsert employees
+    let upsertErrorCount = 0
     for (const emp of parsed.employees) {
       const { error: empError } = await supabaseServer
         .from('employees')
@@ -69,8 +73,19 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'employee_id' })
 
       if (empError) {
-        console.error('Employee upsert error:', empError)
+        upsertErrorCount++
+        if (upsertErrorCount === 1) {
+          // Only log first error in detail to avoid spam
+          console.error('Employee upsert error - Full error object:', empError)
+          console.error('Employee upsert error - Code:', empError?.code)
+          console.error('Employee upsert error - Message:', empError?.message)
+          console.error('Employee upsert error - Details:', empError?.details)
+          console.error('Failed employee:', JSON.stringify({ employee_id: emp.employee_id, last_name: emp.last_name, first_name: emp.first_name }))
+        }
       }
+    }
+    if (upsertErrorCount > 0) {
+      console.warn(`Employee upsert: ${upsertErrorCount} errors out of ${parsed.employees.length} employees`)
     }
 
     // Get employee IDs
@@ -123,8 +138,16 @@ export async function POST(request: NextRequest) {
       .insert(entries)
 
     if (entriesError) {
+      console.error('Entries insert error - Full error object:', entriesError)
+      console.error('Entries insert error - Code:', entriesError?.code)
+      console.error('Entries insert error - Message:', entriesError?.message)
+      console.error('Entries insert error - Details:', entriesError?.details)
+      console.error('Number of entries attempted to insert:', entries.length)
+      if (entries.length > 0) {
+        console.error('First entry sample:', JSON.stringify(entries[0], null, 2))
+      }
       return NextResponse.json(
-        { error: 'Failed to create payroll entries' },
+        { error: 'Failed to create payroll entries', detail: entriesError?.message, code: entriesError?.code },
         { status: 500 }
       )
     }
@@ -149,9 +172,17 @@ export async function POST(request: NextRequest) {
         is_reviewed: false,
       }))
 
-      await supabaseServer
+      const { error: discrepanciesError } = await supabaseServer
         .from('discrepancies')
         .insert(discrepancyRecords)
+
+      if (discrepanciesError) {
+        console.error('Discrepancies insert error - Full error object:', discrepanciesError)
+        console.error('Discrepancies insert error - Code:', discrepanciesError?.code)
+        console.error('Discrepancies insert error - Message:', discrepanciesError?.message)
+        console.error('Discrepancies insert error - Details:', discrepanciesError?.details)
+        console.error('Number of discrepancies attempted to insert:', discrepancyRecords.length)
+      }
     }
 
     return NextResponse.json({
