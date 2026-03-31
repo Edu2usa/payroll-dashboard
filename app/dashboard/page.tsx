@@ -329,14 +329,20 @@ export default function DashboardPage() {
                       nameKey="department"
                       cx="50%"
                       cy="50%"
-                      outerRadius={80}
-                      label={({ department, earnings }) => `Dept ${department}: ${formatCurrency(earnings)}`}
+                      outerRadius={100}
+                      label={false}
                     >
                       {data.departmentBreakdown.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={departmentColors[index % departmentColors.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Legend
+                      formatter={(value, entry: any) => {
+                        const item = data.departmentBreakdown.find(d => d.department === Number(value))
+                        return `Dept ${value}: ${item ? formatCurrency(item.earnings) : ''}`
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
