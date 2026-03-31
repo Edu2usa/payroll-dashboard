@@ -13,26 +13,33 @@ export type PayrollPeriod = {
   period_end: string
   check_date: string
   run_date: string
-  total_gross: number
-  total_net: number
+  company_id: string
+  total_persons: number
+  total_transactions: number
+  total_hours: number
+  total_earnings: number
   total_withholdings: number
   total_deductions: number
-  employee_count: number
-  status: string
-  pdf_filename: string
+  total_employer_liability: number
+  total_tax_liability: number
+  total_net_pay: number
+  raw_text: string | null
   created_at: string
+  updated_at: string
 }
 
 export type Employee = {
   id: string
-  employee_id: string
-  name: string
+  employee_id: number
+  last_name: string
+  first_name: string
+  middle_initial: string
   department: number
-  hourly_rate: number
   is_active: boolean
   first_seen: string
   last_seen: string
   created_at: string
+  updated_at: string
 }
 
 export type PayrollEntry = {
@@ -41,16 +48,20 @@ export type PayrollEntry = {
   employee_id: string
   department: number
   regular_hours: number
-  overtime_hours: number
-  double_time_hours: number
-  vacation_hours: number
-  total_hours: number
+  regular_rate: number
   regular_earnings: number
+  overtime_hours: number
+  overtime_rate: number
   overtime_earnings: number
+  double_time_hours: number
+  double_time_rate: number
   double_time_earnings: number
+  vacation_hours: number
+  vacation_rate: number
   vacation_earnings: number
+  total_hours: number
   total_earnings: number
-  hourly_rate: number
+  reimb_other_payments: number
   social_security: number
   medicare: number
   fed_income_tax: number
@@ -59,25 +70,32 @@ export type PayrollEntry = {
   total_withholdings: number
   health_deduction: number
   simple_ira: number
-  other_deductions: number
+  hsa: number
+  loan_repayment: number
+  other_deduction: number
   total_deductions: number
   net_pay: number
+  direct_deposit_amount: number
+  check_amount: number
   check_number: string
-  direct_deposit_number: string
   created_at: string
 }
 
 export type Discrepancy = {
   id: string
-  payroll_period_id: string
   employee_id: string
+  current_period_id: string
+  previous_period_id: string | null
   type: string
-  severity: string
-  description: string
+  field: string
   previous_value: number | null
   current_value: number | null
   difference: number | null
+  percent_change: number | null
+  severity: string
+  notes: string | null
   is_reviewed: boolean
+  reviewed_by: string | null
   reviewed_at: string | null
   created_at: string
 }

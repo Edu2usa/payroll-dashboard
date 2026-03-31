@@ -10,9 +10,9 @@ type PayrollPeriod = {
   period_start: string
   period_end: string
   check_date: string
-  total_gross: number
-  total_net: number
-  employee_count: number
+  total_earnings: number
+  total_net_pay: number
+  total_persons: number
 }
 
 export default function DashboardPage() {
@@ -37,8 +37,8 @@ export default function DashboardPage() {
         setPeriods(data)
         setChartData(data.reverse().map((p: PayrollPeriod) => ({
           date: p.check_date,
-          gross: p.total_gross,
-          net: p.total_net,
+          gross: p.total_earnings,
+          net: p.total_net_pay,
         })))
       } catch (err) {
         console.error(err)
@@ -73,16 +73,16 @@ export default function DashboardPage() {
             {currentPeriod && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="card">
-                  <p className="text-gray-600 text-sm">Total Gross</p>
-                  <p className="text-3xl font-bold text-blue-600">${currentPeriod.total_gross.toFixed(2)}</p>
+                  <p className="text-gray-600 text-sm">Total Earnings</p>
+                  <p className="text-3xl font-bold text-blue-600">${currentPeriod.total_earnings.toFixed(2)}</p>
                 </div>
                 <div className="card">
-                  <p className="text-gray-600 text-sm">Total Net</p>
-                  <p className="text-3xl font-bold text-green-600">${currentPeriod.total_net.toFixed(2)}</p>
+                  <p className="text-gray-600 text-sm">Total Net Pay</p>
+                  <p className="text-3xl font-bold text-green-600">${currentPeriod.total_net_pay.toFixed(2)}</p>
                 </div>
                 <div className="card">
                   <p className="text-gray-600 text-sm">Employees</p>
-                  <p className="text-3xl font-bold">{currentPeriod.employee_count}</p>
+                  <p className="text-3xl font-bold">{currentPeriod.total_persons}</p>
                 </div>
                 <div className="card">
                   <p className="text-gray-600 text-sm">Period</p>
@@ -129,9 +129,9 @@ export default function DashboardPage() {
                           <tr key={p.id}>
                             <td>{p.period_start} to {p.period_end}</td>
                             <td>{p.check_date}</td>
-                            <td>{p.employee_count}</td>
-                            <td className="text-blue-600 font-semibold">${p.total_gross.toFixed(2)}</td>
-                            <td className="text-green-600 font-semibold">${p.total_net.toFixed(2)}</td>
+                            <td>{p.total_persons}</td>
+                            <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
+                            <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
                             <td><Link href={`/comparison?periodId=${p.id}`} className="text-blue-500 hover:underline">View</Link></td>
                           </tr>
                         ))}

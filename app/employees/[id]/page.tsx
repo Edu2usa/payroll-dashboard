@@ -6,10 +6,11 @@ import Link from 'next/link'
 
 type Employee = {
   id: string
-  employee_id: string
-  name: string
+  employee_id: number
+  last_name: string
+  first_name: string
+  middle_initial: string
   department: number
-  hourly_rate: number
   first_seen: string
   last_seen: string
 }
@@ -70,7 +71,7 @@ export default function EmployeeDetailPage() {
         ) : employee ? (
           <>
             <div className="card mb-8">
-              <h1 className="text-3xl font-bold mb-4">{employee.name}</h1>
+              <h1 className="text-3xl font-bold mb-4">{employee.last_name}, {employee.first_name}{employee.middle_initial ? ' ' + employee.middle_initial : ''}</h1>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-gray-600 text-sm">Employee ID</p>
@@ -81,12 +82,12 @@ export default function EmployeeDetailPage() {
                   <p className="font-semibold">{employee.department}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">Hourly Rate</p>
-                  <p className="font-semibold">${employee.hourly_rate.toFixed(2)}</p>
+                  <p className="text-gray-600 text-sm">Hire Date</p>
+                  <p className="font-semibold">{employee.first_seen}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600 text-sm">First Seen</p>
-                  <p className="font-semibold">{employee.first_seen}</p>
+                  <p className="text-gray-600 text-sm">Last Seen</p>
+                  <p className="font-semibold">{employee.last_seen}</p>
                 </div>
               </div>
             </div>

@@ -6,10 +6,11 @@ import Link from 'next/link'
 
 type Employee = {
   id: string
-  employee_id: string
-  name: string
+  employee_id: number
+  last_name: string
+  first_name: string
+  middle_initial: string
   department: number
-  hourly_rate: number
   last_seen: string
 }
 
@@ -87,7 +88,7 @@ export default function EmployeesPage() {
                       <th>ID</th>
                       <th>Name</th>
                       <th>Department</th>
-                      <th>Hourly Rate</th>
+                      <th>Rate</th>
                       <th>Last Seen</th>
                       <th></th>
                     </tr>
@@ -96,9 +97,9 @@ export default function EmployeesPage() {
                     {employees.map(emp => (
                       <tr key={emp.id}>
                         <td className="font-mono">{emp.employee_id}</td>
-                        <td>{emp.name}</td>
+                        <td>{emp.last_name}, {emp.first_name}{emp.middle_initial ? ' ' + emp.middle_initial : ''}</td>
                         <td>Dept {emp.department}</td>
-                        <td>${emp.hourly_rate.toFixed(2)}</td>
+                        <td className="text-gray-600">-</td>
                         <td>{emp.last_seen}</td>
                         <td><Link href={`/employees/${emp.id}`} className="text-blue-500 hover:underline">View</Link></td>
                       </tr>

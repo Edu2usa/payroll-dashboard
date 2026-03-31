@@ -9,10 +9,9 @@ type PayrollPeriod = {
   period_start: string
   period_end: string
   check_date: string
-  total_gross: number
-  total_net: number
-  employee_count: number
-  pdf_filename: string
+  total_earnings: number
+  total_net_pay: number
+  total_persons: number
   created_at: string
 }
 
@@ -70,9 +69,8 @@ export default function HistoryPage() {
                       <th>Period</th>
                       <th>Check Date</th>
                       <th>Employees</th>
-                      <th>Gross</th>
-                      <th>Net</th>
-                      <th>PDF</th>
+                      <th>Earnings</th>
+                      <th>Net Pay</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -81,10 +79,9 @@ export default function HistoryPage() {
                       <tr key={p.id}>
                         <td className="text-sm">{p.period_start} to {p.period_end}</td>
                         <td>{p.check_date}</td>
-                        <td>{p.employee_count}</td>
-                        <td className="text-blue-600 font-semibold">${p.total_gross.toFixed(2)}</td>
-                        <td className="text-green-600 font-semibold">${p.total_net.toFixed(2)}</td>
-                        <td className="text-xs text-gray-500">{p.pdf_filename}</td>
+                        <td>{p.total_persons}</td>
+                        <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
+                        <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
                         <td><Link href={`/comparison?periodId=${p.id}`} className="text-blue-500 hover:underline">Compare</Link></td>
                       </tr>
                     ))}

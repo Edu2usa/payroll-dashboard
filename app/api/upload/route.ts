@@ -30,13 +30,17 @@ export async function POST(request: NextRequest) {
         period_end: parsed.period_end,
         check_date: parsed.check_date,
         run_date: parsed.run_date,
-        total_gross: parsed.totals.total_gross,
-        total_net: parsed.totals.total_net,
+        company_id: 'default',
+        total_persons: parsed.totals.total_persons,
+        total_transactions: parsed.totals.total_transactions,
+        total_hours: parsed.totals.total_hours,
+        total_earnings: parsed.totals.total_earnings,
         total_withholdings: parsed.totals.total_withholdings,
         total_deductions: parsed.totals.total_deductions,
-        employee_count: parsed.totals.employee_count,
-        status: 'active',
-        pdf_filename: file.name,
+        total_employer_liability: parsed.totals.total_employer_liability,
+        total_tax_liability: parsed.totals.total_tax_liability,
+        total_net_pay: parsed.totals.total_net_pay,
+        raw_text: '',
       })
       .select()
 
@@ -55,9 +59,10 @@ export async function POST(request: NextRequest) {
         .from('employees')
         .upsert({
           employee_id: emp.employee_id,
-          name: emp.name,
+          last_name: emp.last_name,
+          first_name: emp.first_name,
+          middle_initial: emp.middle_initial,
           department: emp.department,
-          hourly_rate: emp.hourly_rate,
           is_active: true,
           first_seen: emp.first_seen,
           last_seen: emp.last_seen,
@@ -81,16 +86,20 @@ export async function POST(request: NextRequest) {
       employee_id: empMap.get(emp.employee_id),
       department: emp.department,
       regular_hours: emp.payroll_entry.regular_hours,
-      overtime_hours: emp.payroll_entry.overtime_hours,
-      double_time_hours: emp.payroll_entry.double_time_hours,
-      vacation_hours: emp.payroll_entry.vacation_hours,
-      total_hours: emp.payroll_entry.total_hours,
+      regular_rate: emp.payroll_entry.regular_rate,
       regular_earnings: emp.payroll_entry.regular_earnings,
+      overtime_hours: emp.payroll_entry.overtime_hours,
+      overtime_rate: emp.payroll_entry.overtime_rate,
       overtime_earnings: emp.payroll_entry.overtime_earnings,
+      double_time_hours: emp.payroll_entry.double_time_hours,
+      double_time_rate: emp.payroll_entry.double_time_rate,
       double_time_earnings: emp.payroll_entry.double_time_earnings,
+      vacation_hours: emp.payroll_entry.vacation_hours,
+      vacation_rate: emp.payroll_entry.vacation_rate,
       vacation_earnings: emp.payroll_entry.vacation_earnings,
+      total_hours: emp.payroll_entry.total_hours,
       total_earnings: emp.payroll_entry.total_earnings,
-      hourly_rate: emp.payroll_entry.hourly_rate,
+      reimb_other_payments: emp.payroll_entry.reimb_other_payments,
       social_security: emp.payroll_entry.social_security,
       medicare: emp.payroll_entry.medicare,
       fed_income_tax: emp.payroll_entry.fed_income_tax,
@@ -99,11 +108,14 @@ export async function POST(request: NextRequest) {
       total_withholdings: emp.payroll_entry.total_withholdings,
       health_deduction: emp.payroll_entry.health_deduction,
       simple_ira: emp.payroll_entry.simple_ira,
-      other_deductions: emp.payroll_entry.other_deductions,
+      hsa: emp.payroll_entry.hsa,
+      loan_repayment: emp.payroll_entry.loan_repayment,
+      other_deduction: emp.payroll_entry.other_deduction,
       total_deductions: emp.payroll_entry.total_deductions,
       net_pay: emp.payroll_entry.net_pay,
+      direct_deposit_amount: emp.payroll_entry.direct_deposit_amount,
+      check_amount: emp.payroll_entry.check_amount,
       check_number: emp.payroll_entry.check_number,
-      direct_deposit_number: emp.payroll_entry.direct_deposit_number,
     }))
 
     const { error: entriesError } = await supabaseServer
@@ -123,14 +135,17 @@ export async function POST(request: NextRequest) {
     // Insert discrepancies
     if (discrepancies.length > 0) {
       const discrepancyRecords = discrepancies.map(d => ({
-        payroll_period_id: payrollPeriodId,
         employee_id: empMap.get(d.employee_id),
+        current_period_id: d.current_period_id,
+        previous_period_id: d.previous_period_id,
         type: d.type,
+        field: d.field,
         severity: d.severity,
-        description: d.description,
+        notes: d.notes,
         previous_value: d.previous_value,
         current_value: d.current_value,
         difference: d.difference,
+        percent_change: d.percent_change,
         is_reviewed: false,
       }))
 
@@ -142,7 +157,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       payrollPeriodId,
-      employeeCount: parsed.totals.employee_count,
+      employeeCount: parsed.totals.total_persons,
       discrepancyCount: discrepancies.length,
     })
   } catch (err) {

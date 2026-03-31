@@ -28,10 +28,12 @@ export async function GET(request: NextRequest) {
       query = supabaseServer
         .from('employees')
         .select('*')
-        .or(`name.ilike.%${search}%,employee_id.ilike.%${search}%`)
+        .or(`last_name.ilike.%${search}%,first_name.ilike.%${search}%,employee_id.eq.${isNaN(parseInt(search)) ? -1 : parseInt(search)}`)
         .eq('is_active', true)
-        .order('name')
+        .order('last_name,first_name')
         .limit(limit)
+    } else {
+      query = query.order('last_name,first_name')
     }
 
     const { data, error } = await query

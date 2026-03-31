@@ -10,10 +10,10 @@ type PayrollPeriod = {
   period_start: string
   period_end: string
   check_date: string
-  total_gross: number
-  total_net: number
+  total_earnings: number
+  total_net_pay: number
   total_withholdings: number
-  employee_count: number
+  total_persons: number
 }
 
 type PayrollEntry = {
@@ -71,16 +71,16 @@ function ComparisonContent() {
                 <h2 className="text-xl font-bold mb-4">Current Period</h2>
                 <div className="space-y-2">
                   <p className="text-gray-600">{current.period_start} to {current.period_end}</p>
-                  <p className="text-2xl font-bold text-blue-600">${current.total_gross.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">{current.employee_count} employees</p>
+                  <p className="text-2xl font-bold text-blue-600">${current.total_earnings.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600">{current.total_persons} employees</p>
                 </div>
               </div>
               <div className="card">
                 <h2 className="text-xl font-bold mb-4">Previous Period</h2>
                 <div className="space-y-2">
                   <p className="text-gray-600">{previous.period_start} to {previous.period_end}</p>
-                  <p className="text-2xl font-bold text-blue-600">${previous.total_gross.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">{previous.employee_count} employees</p>
+                  <p className="text-2xl font-bold text-blue-600">${previous.total_earnings.toFixed(2)}</p>
+                  <p className="text-sm text-gray-600">{previous.total_persons} employees</p>
                 </div>
               </div>
             </div>
@@ -103,27 +103,27 @@ function ComparisonContent() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="font-semibold">Total Gross</td>
-                      <td>${current.total_gross.toFixed(2)}</td>
-                      <td>${previous.total_gross.toFixed(2)}</td>
-                      <td className={current.total_gross > previous.total_gross ? 'text-green-600' : 'text-red-600'}>
-                        {(((current.total_gross - previous.total_gross) / previous.total_gross) * 100).toFixed(1)}%
+                      <td className="font-semibold">Total Earnings</td>
+                      <td>${current.total_earnings.toFixed(2)}</td>
+                      <td>${previous.total_earnings.toFixed(2)}</td>
+                      <td className={current.total_earnings > previous.total_earnings ? 'text-green-600' : 'text-red-600'}>
+                        {(((current.total_earnings - previous.total_earnings) / previous.total_earnings) * 100).toFixed(1)}%
                       </td>
                     </tr>
                     <tr>
-                      <td className="font-semibold">Total Net</td>
-                      <td>${current.total_net.toFixed(2)}</td>
-                      <td>${previous.total_net.toFixed(2)}</td>
-                      <td className={current.total_net > previous.total_net ? 'text-green-600' : 'text-red-600'}>
-                        {(((current.total_net - previous.total_net) / previous.total_net) * 100).toFixed(1)}%
+                      <td className="font-semibold">Total Net Pay</td>
+                      <td>${current.total_net_pay.toFixed(2)}</td>
+                      <td>${previous.total_net_pay.toFixed(2)}</td>
+                      <td className={current.total_net_pay > previous.total_net_pay ? 'text-green-600' : 'text-red-600'}>
+                        {(((current.total_net_pay - previous.total_net_pay) / previous.total_net_pay) * 100).toFixed(1)}%
                       </td>
                     </tr>
                     <tr>
                       <td className="font-semibold">Employees</td>
-                      <td>{current.employee_count}</td>
-                      <td>{previous.employee_count}</td>
-                      <td className={current.employee_count > previous.employee_count ? 'text-green-600' : 'text-red-600'}>
-                        {current.employee_count - previous.employee_count > 0 ? '+' : ''}{current.employee_count - previous.employee_count}
+                      <td>{current.total_persons}</td>
+                      <td>{previous.total_persons}</td>
+                      <td className={current.total_persons > previous.total_persons ? 'text-green-600' : 'text-red-600'}>
+                        {current.total_persons - previous.total_persons > 0 ? '+' : ''}{current.total_persons - previous.total_persons}
                       </td>
                     </tr>
                   </tbody>

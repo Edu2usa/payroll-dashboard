@@ -5,13 +5,17 @@ export interface ParsedPayroll {
   period_end: string
   check_date: string
   run_date: string
-  employees: (Employee & { payroll_entry: Omit<PayrollEntry, 'id' | 'payroll_period_id' | 'employee_id' | 'created_at'> })[]
+  employees: (Omit<Employee, 'id' | 'created_at' | 'updated_at'> & { payroll_entry: Omit<PayrollEntry, 'id' | 'payroll_period_id' | 'employee_id' | 'created_at'> })[]
   totals: {
-    total_gross: number
-    total_net: number
+    total_hours: number
+    total_earnings: number
     total_withholdings: number
     total_deductions: number
-    employee_count: number
+    total_persons: number
+    total_transactions: number
+    total_employer_liability: number
+    total_tax_liability: number
+    total_net_pay: number
   }
 }
 
@@ -95,27 +99,51 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
   for (const empLine of employeeLines) {
     const employeeKey = empLine.id
     if (!employees.has(employeeKey)) {
+      // Parse name: "Arache,YeryE" -> last_name="Arache", first_name="Yery", middle_initial="E"
+      const nameParts = empLine.name.split(',')
+      let last_name = ''
+      let first_name = ''
+      let middle_initial = ''
+
+      if (nameParts.length >= 2) {
+        last_name = nameParts[0].trim()
+        const firstPart = nameParts[1].trim()
+        // Extract last char as middle initial if it exists
+        if (firstPart.length > 1) {
+          first_name = firstPart.slice(0, -1)
+          middle_initial = firstPart.slice(-1)
+        } else {
+          first_name = firstPart
+          middle_initial = ''
+        }
+      }
+
       employees.set(employeeKey, {
-        employee_id: empLine.id,
-        name: empLine.name,
+        employee_id: parseInt(empLine.id),
+        last_name,
+        first_name,
+        middle_initial,
         department: currentDepartment,
-        hourly_rate: 0,
         is_active: true,
         first_seen: period_start,
         last_seen: period_end,
         payroll_entry: {
           department: currentDepartment,
           regular_hours: 0,
-          overtime_hours: 0,
-          double_time_hours: 0,
-          vacation_hours: 0,
-          total_hours: 0,
+          regular_rate: 0,
           regular_earnings: 0,
+          overtime_hours: 0,
+          overtime_rate: 0,
           overtime_earnings: 0,
+          double_time_hours: 0,
+          double_time_rate: 0,
           double_time_earnings: 0,
+          vacation_hours: 0,
+          vacation_rate: 0,
           vacation_earnings: 0,
+          total_hours: 0,
           total_earnings: 0,
-          hourly_rate: 0,
+          reimb_other_payments: 0,
           social_security: 0,
           medicare: 0,
           fed_income_tax: 0,
@@ -124,11 +152,14 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
           total_withholdings: 0,
           health_deduction: 0,
           simple_ira: 0,
-          other_deductions: 0,
+          hsa: 0,
+          loan_repayment: 0,
+          other_deduction: 0,
           total_deductions: 0,
           net_pay: 0,
+          direct_deposit_amount: 0,
+          check_amount: 0,
           check_number: '',
-          direct_deposit_number: '',
         }
       })
     }
@@ -161,9 +192,8 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
         const hours = parseNumber(parts[2])
         const earnings = parseNumber(parts[3])
         emp.payroll_entry.regular_hours = hours
+        emp.payroll_entry.regular_rate = rate
         emp.payroll_entry.regular_earnings = earnings
-        if (emp.hourly_rate === 0) emp.hourly_rate = rate
-        emp.payroll_entry.hourly_rate = rate
       }
     }
 
@@ -174,6 +204,7 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
         const hours = parseNumber(parts[2])
         const earnings = parseNumber(parts[3])
         emp.payroll_entry.overtime_hours = hours
+        emp.payroll_entry.overtime_rate = rate
         emp.payroll_entry.overtime_earnings = earnings
       }
     }
@@ -181,9 +212,11 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
     if (line.startsWith('Double Time ')) {
       const parts = line.split(/\s+/)
       if (parts.length >= 4) {
+        const rate = parseNumber(parts[1])
         const hours = parseNumber(parts[2])
         const earnings = parseNumber(parts[3])
         emp.payroll_entry.double_time_hours = hours
+        emp.payroll_entry.double_time_rate = rate
         emp.payroll_entry.double_time_earnings = earnings
       }
     }
@@ -191,9 +224,11 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
     if (line.startsWith('Vacation ')) {
       const parts = line.split(/\s+/)
       if (parts.length >= 4) {
+        const rate = parseNumber(parts[1])
         const hours = parseNumber(parts[2])
         const earnings = parseNumber(parts[3])
         emp.payroll_entry.vacation_hours = hours
+        emp.payroll_entry.vacation_rate = rate
         emp.payroll_entry.vacation_earnings = earnings
       }
     }
@@ -224,15 +259,19 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
       emp.payroll_entry.ct_pfl = parseNumber(parts[2])
     }
 
-    // Parse deductions
+    // Parse deductions and payment info
     if (line.startsWith('DirectDeposit#')) {
-      directDepositNumber = line.replace('DirectDeposit#', '')
-      emp.payroll_entry.direct_deposit_number = directDepositNumber
+      const match = line.match(/DirectDeposit#(\d+)/)
+      if (match) {
+        emp.payroll_entry.direct_deposit_amount = parseNumber(match[1])
+      }
     }
 
     if (line.startsWith('CheckAmt ')) {
       const parts = line.split(/\s+/)
-      emp.payroll_entry.check_number = ''
+      if (parts.length >= 2) {
+        emp.payroll_entry.check_amount = parseNumber(parts[1])
+      }
     }
 
     if (line.startsWith('Chkg')) {
@@ -240,7 +279,7 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
       if (match) {
         checkNumber = match[1]
         emp.payroll_entry.check_number = checkNumber
-        emp.payroll_entry.net_pay = parseNumber(match[2])
+        emp.payroll_entry.check_amount = parseNumber(match[2])
       }
     }
 
@@ -260,26 +299,28 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
   }
 
   // Calculate totals and finalize
-  let total_gross = 0
-  let total_net = 0
+  let total_hours = 0
+  let total_earnings = 0
   let total_withholdings = 0
   let total_deductions = 0
+  let total_net_pay = 0
 
   employees.forEach(emp => {
     const pe = emp.payroll_entry
     pe.total_hours = (pe.regular_hours || 0) + (pe.overtime_hours || 0) + (pe.double_time_hours || 0) + (pe.vacation_hours || 0)
     pe.total_earnings = (pe.regular_earnings || 0) + (pe.overtime_earnings || 0) + (pe.double_time_earnings || 0) + (pe.vacation_earnings || 0)
     pe.total_withholdings = (pe.social_security || 0) + (pe.medicare || 0) + (pe.fed_income_tax || 0) + (pe.ct_income_tax || 0) + (pe.ct_pfl || 0)
-    pe.total_deductions = (pe.health_deduction || 0) + (pe.simple_ira || 0) + (pe.other_deductions || 0)
-    
+    pe.total_deductions = (pe.health_deduction || 0) + (pe.simple_ira || 0) + (pe.hsa || 0) + (pe.loan_repayment || 0) + (pe.other_deduction || 0)
+
     if (pe.net_pay === 0) {
       pe.net_pay = pe.total_earnings - pe.total_withholdings - pe.total_deductions
     }
 
-    total_gross += pe.total_earnings
-    total_net += pe.net_pay
+    total_hours += pe.total_hours
+    total_earnings += pe.total_earnings
     total_withholdings += pe.total_withholdings
     total_deductions += pe.total_deductions
+    total_net_pay += pe.net_pay
   })
 
   return {
@@ -289,11 +330,15 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
     run_date,
     employees: Array.from(employees.values()),
     totals: {
-      total_gross,
-      total_net,
+      total_hours,
+      total_earnings,
       total_withholdings,
       total_deductions,
-      employee_count: employees.size
+      total_persons: employees.size,
+      total_transactions: employees.size,
+      total_employer_liability: 0,
+      total_tax_liability: total_withholdings,
+      total_net_pay,
     }
   }
 }

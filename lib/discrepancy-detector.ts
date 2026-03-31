@@ -2,12 +2,16 @@ import { supabaseServer, PayrollEntry, PayrollPeriod } from './supabase'
 
 export interface DetectedDiscrepancy {
   employee_id: string
+  current_period_id: string
+  previous_period_id: string | null
   type: string
+  field: string
   severity: string
-  description: string
+  notes: string
   previous_value: number | null
   current_value: number | null
   difference: number | null
+  percent_change: number | null
 }
 
 export async function detectDiscrepancies(
@@ -16,7 +20,7 @@ export async function detectDiscrepancies(
 ): Promise<DetectedDiscrepancy[]> {
   const discrepancies: DetectedDiscrepancy[] = []
 
-  // Get previous payroll period
+  // Get current payroll period
   const { data: currentPeriod } = await supabaseServer
     .from('payroll_periods')
     .select('*')
@@ -25,6 +29,7 @@ export async function detectDiscrepancies(
 
   if (!currentPeriod) return discrepancies
 
+  // Get previous payroll period
   const { data: previousPeriods } = await supabaseServer
     .from('payroll_periods')
     .select('*')
@@ -39,12 +44,16 @@ export async function detectDiscrepancies(
     for (const entry of newEntries) {
       discrepancies.push({
         employee_id: entry.employee_id,
+        current_period_id: payrollPeriodId,
+        previous_period_id: null,
         type: 'new_employee',
+        field: 'employee',
         severity: 'info',
-        description: 'First appearance in payroll',
+        notes: 'First appearance in payroll',
         previous_value: null,
         current_value: entry.total_earnings,
         difference: null,
+        percent_change: null,
       })
     }
     return discrepancies
@@ -65,12 +74,16 @@ export async function detectDiscrepancies(
     if (!prevEntry) {
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'new_employee',
+        field: 'employee',
         severity: 'info',
-        description: 'First appearance in this payroll',
+        notes: 'First appearance in this payroll',
         previous_value: null,
         current_value: newEntry.total_earnings,
         difference: null,
+        percent_change: null,
       })
       continue
     }
@@ -83,28 +96,37 @@ export async function detectDiscrepancies(
       if (percentChange > 0.2) {
         discrepancies.push({
           employee_id: empId,
+          current_period_id: payrollPeriodId,
+          previous_period_id: previousPeriod.id,
           type: 'hours_change',
+          field: 'total_hours',
           severity: percentChange > 0.5 ? 'high' : 'medium',
-          description: `Hours changed from ${prevHours} to ${currHours} (${(percentChange * 100).toFixed(1)}%)`,
+          notes: `Hours changed from ${prevHours} to ${currHours}`,
           previous_value: prevHours,
           current_value: currHours,
           difference: currHours - prevHours,
+          percent_change: percentChange * 100,
         })
       }
     }
 
-    // Check rate change
-    const prevRate = prevEntry.hourly_rate || 0
-    const currRate = newEntry.hourly_rate || 0
-    if (prevRate > 0 && currRate > 0 && Math.abs(prevRate - currRate) > 0.01) {
+    // Check regular rate change
+    const prevRegRate = prevEntry.regular_rate || 0
+    const currRegRate = newEntry.regular_rate || 0
+    if (prevRegRate > 0 && currRegRate > 0 && Math.abs(prevRegRate - currRegRate) > 0.01) {
+      const percentChange = Math.abs((currRegRate - prevRegRate) / prevRegRate) * 100
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'rate_change',
+        field: 'regular_rate',
         severity: 'high',
-        description: `Hourly rate changed from $${prevRate.toFixed(2)} to $${currRate.toFixed(2)}`,
-        previous_value: prevRate,
-        current_value: currRate,
-        difference: currRate - prevRate,
+        notes: `Regular rate changed from $${prevRegRate.toFixed(2)} to $${currRegRate.toFixed(2)}`,
+        previous_value: prevRegRate,
+        current_value: currRegRate,
+        difference: currRegRate - prevRegRate,
+        percent_change: percentChange,
       })
     }
 
@@ -112,33 +134,43 @@ export async function detectDiscrepancies(
     const prevOT = prevEntry.overtime_hours || 0
     const currOT = newEntry.overtime_hours || 0
     if (currOT > prevOT && currOT > 20) {
+      const percentChange = ((currOT - prevOT) / prevOT) * 100
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'overtime_spike',
+        field: 'overtime_hours',
         severity: 'medium',
-        description: `Overtime hours spiked from ${prevOT} to ${currOT}`,
+        notes: `Overtime hours spiked from ${prevOT} to ${currOT}`,
         previous_value: prevOT,
         current_value: currOT,
         difference: currOT - prevOT,
+        percent_change: percentChange,
       })
     }
 
     // Check earnings vs hours calculation
     const currEarnings = newEntry.total_earnings || 0
-    const currCalcEarnings = (newEntry.regular_hours || 0) * (newEntry.hourly_rate || 0) +
-                             (newEntry.overtime_hours || 0) * (newEntry.hourly_rate || 0) * 1.5 +
-                             (newEntry.double_time_hours || 0) * (newEntry.hourly_rate || 0) * 2 +
-                             (newEntry.vacation_hours || 0) * (newEntry.hourly_rate || 0)
+    const currCalcEarnings = (newEntry.regular_hours || 0) * (newEntry.regular_rate || 0) +
+                             (newEntry.overtime_hours || 0) * (newEntry.overtime_rate || 0) +
+                             (newEntry.double_time_hours || 0) * (newEntry.double_time_rate || 0) +
+                             (newEntry.vacation_hours || 0) * (newEntry.vacation_rate || 0)
     const earningsDiff = Math.abs(currEarnings - currCalcEarnings)
     if (earningsDiff > 1 && currEarnings > 0) {
+      const percentChange = (earningsDiff / currEarnings) * 100
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'earnings_anomaly',
+        field: 'total_earnings',
         severity: 'medium',
-        description: `Earnings ($${currEarnings.toFixed(2)}) don't match calculated amount ($${currCalcEarnings.toFixed(2)})`,
+        notes: `Earnings don't match calculated amount`,
         previous_value: currCalcEarnings,
         current_value: currEarnings,
         difference: earningsDiff,
+        percent_change: percentChange,
       })
     }
 
@@ -146,14 +178,19 @@ export async function detectDiscrepancies(
     const prevDed = prevEntry.total_deductions || 0
     const currDed = newEntry.total_deductions || 0
     if (prevDed > 0 && currDed > 0 && Math.abs(prevDed - currDed) > prevDed * 0.1) {
+      const percentChange = Math.abs((currDed - prevDed) / prevDed) * 100
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'deduction_change',
+        field: 'total_deductions',
         severity: 'medium',
-        description: `Deductions changed from $${prevDed.toFixed(2)} to $${currDed.toFixed(2)}`,
+        notes: `Deductions changed from $${prevDed.toFixed(2)} to $${currDed.toFixed(2)}`,
         previous_value: prevDed,
         current_value: currDed,
         difference: currDed - prevDed,
+        percent_change: percentChange,
       })
     }
 
@@ -161,12 +198,16 @@ export async function detectDiscrepancies(
     if (prevEntry.department !== newEntry.department) {
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'department_change',
+        field: 'department',
         severity: 'medium',
-        description: `Moved from department ${prevEntry.department} to ${newEntry.department}`,
+        notes: `Moved from department ${prevEntry.department} to ${newEntry.department}`,
         previous_value: prevEntry.department,
         current_value: newEntry.department,
         difference: null,
+        percent_change: null,
       })
     }
   }
@@ -176,12 +217,16 @@ export async function detectDiscrepancies(
     if (!newMap.has(empId)) {
       discrepancies.push({
         employee_id: empId,
+        current_period_id: payrollPeriodId,
+        previous_period_id: previousPeriod.id,
         type: 'missing_employee',
+        field: 'employee',
         severity: 'high',
-        description: 'Employee was in previous payroll but not in current',
+        notes: 'Employee was in previous payroll but not in current',
         previous_value: prevEntry.total_earnings,
         current_value: null,
         difference: null,
+        percent_change: null,
       })
     }
   }
