@@ -134,7 +134,7 @@ export async function detectDiscrepancies(
     const prevOT = prevEntry.overtime_hours || 0
     const currOT = newEntry.overtime_hours || 0
     if (currOT > prevOT && currOT > 20) {
-      const percentChange = ((currOT - prevOT) / prevOT) * 100
+      const percentChange = prevOT > 0 ? ((currOT - prevOT) / prevOT) * 100 : 100
       discrepancies.push({
         employee_id: empId,
         current_period_id: payrollPeriodId,

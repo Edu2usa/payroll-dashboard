@@ -16,8 +16,8 @@ const navigationItems = [
 export function Sidebar() {
   const pathname = usePathname()
 
-  const handleLogout = () => {
-    document.cookie = 'payroll_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
   }
 
   return (
@@ -31,7 +31,7 @@ export function Sidebar() {
         <div className="space-y-2">
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(item.href)
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
             return (
               <Link
                 key={item.href}

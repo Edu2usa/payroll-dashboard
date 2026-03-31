@@ -17,24 +17,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const search = searchParams.get('search')
 
+    // Sanitize search input to prevent filter injection
+    const sanitizedSearch = search ? search.replace(/[%_\\]/g, '\\$&') : null
+
     let query = supabaseServer
       .from('employees')
       .select('*')
       .eq('is_active', true)
+
+    if (sanitizedSearch) {
+      const empIdNum = parseInt(sanitizedSearch)
+      const empIdFilter = isNaN(empIdNum) ? -1 : empIdNum
+      query = query.or(`last_name.ilike.%${sanitizedSearch}%,first_name.ilike.%${sanitizedSearch}%,employee_id.eq.${empIdFilter}`)
+    }
+
+    query = query
       .order('last_name')
       .order('first_name')
       .limit(limit)
-
-    if (search) {
-      query = supabaseServer
-        .from('employees')
-        .select('*')
-        .or(`last_name.ilike.%${search}%,first_name.ilike.%${search}%,employee_id.eq.${isNaN(parseInt(search)) ? -1 : parseInt(search)}`)
-        .eq('is_active', true)
-        .order('last_name')
-        .order('first_name')
-        .limit(limit)
-    }
 
     const { data, error } = await query
 

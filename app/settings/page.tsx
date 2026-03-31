@@ -15,8 +15,8 @@ export default function SettingsPage() {
     checkAuth()
   }, [router])
 
-  const handleLogout = () => {
-    document.cookie = 'payroll_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/')
   }
 

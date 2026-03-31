@@ -84,22 +84,27 @@ export async function GET(request: NextRequest) {
     const latestPeriod = allPeriodsData[0]
     const previousPeriod = allPeriodsData[1]
 
-    // Calculate period-over-period changes
+    // Calculate period-over-period changes (guard against division by zero)
+    function safePctChange(current: number, previous: number): number {
+      if (!previous || previous === 0) return 0
+      return ((current - previous) / previous) * 100
+    }
+
     const periodChange = {
       earnings_change_pct: previousPeriod
-        ? ((latestPeriod.total_earnings - previousPeriod.total_earnings) / previousPeriod.total_earnings) * 100
+        ? safePctChange(latestPeriod.total_earnings, previousPeriod.total_earnings)
         : 0,
       net_pay_change_pct: previousPeriod
-        ? ((latestPeriod.total_net_pay - previousPeriod.total_net_pay) / previousPeriod.total_net_pay) * 100
+        ? safePctChange(latestPeriod.total_net_pay, previousPeriod.total_net_pay)
         : 0,
       hours_change_pct: previousPeriod
-        ? ((latestPeriod.total_hours - previousPeriod.total_hours) / previousPeriod.total_hours) * 100
+        ? safePctChange(latestPeriod.total_hours, previousPeriod.total_hours)
         : 0,
       employees_change_pct: previousPeriod
-        ? ((latestPeriod.total_persons - previousPeriod.total_persons) / previousPeriod.total_persons) * 100
+        ? safePctChange(latestPeriod.total_persons, previousPeriod.total_persons)
         : 0,
       withholdings_change_pct: previousPeriod
-        ? ((latestPeriod.total_withholdings - previousPeriod.total_withholdings) / previousPeriod.total_withholdings) * 100
+        ? safePctChange(latestPeriod.total_withholdings, previousPeriod.total_withholdings)
         : 0,
     }
 

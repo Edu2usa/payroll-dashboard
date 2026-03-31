@@ -21,26 +21,16 @@ export async function GET(request: NextRequest) {
     let query = supabaseServer
       .from('discrepancies')
       .select('*, employees(*), payroll_periods(*)')
-      .order('created_at', { ascending: false })
-      .limit(limit)
 
     if (reviewed !== null) {
-      query = supabaseServer
-        .from('discrepancies')
-        .select('*, employees(*), payroll_periods(*)')
-        .eq('is_reviewed', reviewed === 'true')
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      query = query.eq('is_reviewed', reviewed === 'true')
     }
 
     if (severity) {
-      query = supabaseServer
-        .from('discrepancies')
-        .select('*, employees(*), payroll_periods(*)')
-        .eq('severity', severity)
-        .order('created_at', { ascending: false })
-        .limit(limit)
+      query = query.eq('severity', severity)
     }
+
+    query = query.order('created_at', { ascending: false }).limit(limit)
 
     const { data, error } = await query
 

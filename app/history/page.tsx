@@ -82,7 +82,7 @@ export default function HistoryPage() {
                         <td>{p.total_persons}</td>
                         <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
                         <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
-                        <td><Link href={`/comparison?periodId=${p.id}`} className="text-blue-500 hover:underline">Compare</Link></td>
+                        <td><Link href={`/comparison?currentId=${p.id}`} className="text-blue-500 hover:underline">Compare</Link></td>
                       </tr>
                     ))}
                   </tbody>

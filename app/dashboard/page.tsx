@@ -145,12 +145,9 @@ export default function DashboardPage() {
         }))
         setChartData(trendData)
 
-        // Prepare overtime chart data
-        const otData = recentPeriods.map((period) => ({
-          date: new Date(period.check_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          hours: Math.random() * 100, // This would come from actual OT data per period
-        }))
-        setOvertimeChartData(otData)
+        // OT trend data not available per-period from summary endpoint
+        // Leave overtimeChartData empty — summary stats shown above chart area
+        setOvertimeChartData([])
 
         // Prepare withholdings chart data
         const whData = recentPeriods.map((period) => ({
@@ -393,7 +390,7 @@ export default function DashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8 text-gray-500">No overtime data</div>
+                <div className="text-center py-8 text-gray-500">OT trend chart available after more periods are uploaded</div>
               )}
             </div>
 
