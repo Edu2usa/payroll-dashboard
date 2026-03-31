@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-const APP_PASSWORD = process.env.APP_PASSWORD || 'PreferredMaint2026!'
+const APP_PASSWORD = process.env.APP_PASSWORD || 'kalka'
 const API_KEY = process.env.API_KEY || 'default-api-key'
 const SESSION_NAME = 'payroll_session'
 
