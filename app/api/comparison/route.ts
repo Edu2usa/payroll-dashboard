@@ -91,8 +91,62 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Period not found' }, { status: 404 })
     }
 
-    const currentAgg = aggregateEntries(curEntriesRes.data || [])
-    const previousAgg = aggregateEntries(prevEntriesRes.data || [])
+    const curEntries = curEntriesRes.data || []
+    const prevEntries = prevEntriesRes.data || []
+
+    const currentAgg = aggregateEntries(curEntries)
+    const previousAgg = aggregateEntries(prevEntries)
+
+    // Build employee diff: who's new, who's missing, who's in both
+    const curEmpIds = new Set(curEntries.map((e: any) => e.employee_id))
+    const prevEmpIds = new Set(prevEntries.map((e: any) => e.employee_id))
+
+    const allEmpIds = new Set([...curEmpIds, ...prevEmpIds])
+
+    // Fetch employee names
+    const { data: empNames } = await supabaseServer
+      .from('employees')
+      .select('id, first_name, last_name, department')
+      .in('id', Array.from(allEmpIds))
+
+    const nameMap: Record<string, { name: string; department: number }> = {}
+    for (const emp of empNames || []) {
+      nameMap[emp.id] = { name: `${emp.last_name}, ${emp.first_name}`, department: emp.department }
+    }
+
+    const curEntryMap = new Map(curEntries.map((e: any) => [e.employee_id, e]))
+    const prevEntryMap = new Map(prevEntries.map((e: any) => [e.employee_id, e]))
+
+    const newEmployees: any[] = []
+    const missingEmployees: any[] = []
+
+    for (const empId of curEmpIds) {
+      if (!prevEmpIds.has(empId)) {
+        const entry = curEntryMap.get(empId)
+        newEmployees.push({
+          employee_id: empId,
+          name: nameMap[empId]?.name || 'Unknown',
+          department: nameMap[empId]?.department || 0,
+          total_hours: entry?.total_hours || 0,
+          total_earnings: entry?.total_earnings || 0,
+          net_pay: entry?.net_pay || 0,
+        })
+      }
+    }
+
+    for (const empId of prevEmpIds) {
+      if (!curEmpIds.has(empId)) {
+        const entry = prevEntryMap.get(empId)
+        missingEmployees.push({
+          employee_id: empId,
+          name: nameMap[empId]?.name || 'Unknown',
+          department: nameMap[empId]?.department || 0,
+          total_hours: entry?.total_hours || 0,
+          total_earnings: entry?.total_earnings || 0,
+          net_pay: entry?.net_pay || 0,
+        })
+      }
+    }
 
     return NextResponse.json({
       current: {
@@ -102,6 +156,12 @@ export async function GET(request: NextRequest) {
       previous: {
         ...prevPeriodRes.data,
         breakdown: previousAgg,
+      },
+      employeeDiff: {
+        currentCount: curEmpIds.size,
+        previousCount: prevEmpIds.size,
+        newEmployees,
+        missingEmployees,
       },
     })
   } catch (err) {

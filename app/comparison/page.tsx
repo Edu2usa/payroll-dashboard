@@ -53,6 +53,22 @@ type PeriodOption = {
   total_persons: number
 }
 
+type EmployeeDiffEntry = {
+  employee_id: string
+  name: string
+  department: number
+  total_hours: number
+  total_earnings: number
+  net_pay: number
+}
+
+type EmployeeDiff = {
+  currentCount: number
+  previousCount: number
+  newEmployees: EmployeeDiffEntry[]
+  missingEmployees: EmployeeDiffEntry[]
+}
+
 function ComparisonContent() {
   const router = useRouter()
   const [periods, setPeriods] = useState<PeriodOption[]>([])
@@ -60,6 +76,7 @@ function ComparisonContent() {
   const [previousId, setPreviousId] = useState<string>('')
   const [current, setCurrent] = useState<PayrollPeriod | null>(null)
   const [previous, setPrevious] = useState<PayrollPeriod | null>(null)
+  const [employeeDiff, setEmployeeDiff] = useState<EmployeeDiff | null>(null)
   const [loading, setLoading] = useState(true)
   const [comparing, setComparing] = useState(false)
 
@@ -100,6 +117,7 @@ function ComparisonContent() {
         const data = await res.json()
         setCurrent(data.current)
         setPrevious(data.previous)
+        setEmployeeDiff(data.employeeDiff || null)
       } catch (err) {
         console.error(err)
       } finally {
@@ -205,6 +223,82 @@ function ComparisonContent() {
               <p className="text-xs sm:text-sm text-gray-600 mt-1">{previous.total_persons} employees | {fmtNum(previous.total_hours)} hours</p>
             </div>
           </div>
+
+          {/* Employee Differences */}
+          {employeeDiff && (employeeDiff.newEmployees.length > 0 || employeeDiff.missingEmployees.length > 0) && (
+            <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Employee Differences</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Current: {employeeDiff.currentCount} employees | Previous: {employeeDiff.previousCount} employees
+              </p>
+
+              {employeeDiff.newEmployees.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                    New in Current Period ({employeeDiff.newEmployees.length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Employee</th>
+                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Dept</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Hours</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Earnings</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Net Pay</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employeeDiff.newEmployees.map((emp) => (
+                          <tr key={emp.employee_id} className="border-b border-gray-100 bg-green-50">
+                            <td className="py-2 px-3 text-gray-900">{emp.name}</td>
+                            <td className="py-2 px-3 text-gray-600">{emp.department}</td>
+                            <td className="py-2 px-3 text-right">{fmtNum(emp.total_hours)}</td>
+                            <td className="py-2 px-3 text-right text-green-700 font-medium">+{fmt(emp.total_earnings)}</td>
+                            <td className="py-2 px-3 text-right text-green-700">{fmt(emp.net_pay)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {employeeDiff.missingEmployees.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                    Not in Current Period ({employeeDiff.missingEmployees.length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Employee</th>
+                          <th className="text-left py-2 px-3 font-semibold text-gray-700">Dept</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Hours (prev)</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Earnings (prev)</th>
+                          <th className="text-right py-2 px-3 font-semibold text-gray-700">Net Pay (prev)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {employeeDiff.missingEmployees.map((emp) => (
+                          <tr key={emp.employee_id} className="border-b border-gray-100 bg-red-50">
+                            <td className="py-2 px-3 text-gray-900">{emp.name}</td>
+                            <td className="py-2 px-3 text-gray-600">{emp.department}</td>
+                            <td className="py-2 px-3 text-right">{fmtNum(emp.total_hours)}</td>
+                            <td className="py-2 px-3 text-right text-red-700 font-medium">-{fmt(emp.total_earnings)}</td>
+                            <td className="py-2 px-3 text-right text-red-700">{fmt(emp.net_pay)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Hours & Earnings Breakdown */}
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
