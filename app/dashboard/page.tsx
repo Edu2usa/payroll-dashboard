@@ -2,24 +2,121 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Sidebar } from '@/components/Sidebar'
+import {
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
+} from 'recharts'
+import { AlertCircle, TrendingDown, TrendingUp } from 'lucide-react'
 
-type PayrollPeriod = {
-  id: string
-  period_start: string
-  period_end: string
-  check_date: string
-  total_earnings: number
-  total_net_pay: number
-  total_persons: number
+interface DashboardData {
+  latestPeriod: {
+    id: string
+    period_start: string
+    period_end: string
+    check_date: string
+    total_earnings: number
+    total_net_pay: number
+    total_hours: number
+    total_persons: number
+    total_withholdings: number
+    total_deductions: number
+  }
+  periodChange: {
+    earnings_change_pct: number
+    net_pay_change_pct: number
+    hours_change_pct: number
+    employees_change_pct: number
+    withholdings_change_pct: number
+  }
+  departmentBreakdown: Array<{
+    department: number
+    earnings: number
+    hours: number
+    employees: number
+  }>
+  topEarners: Array<{
+    name: string
+    department: number
+    hours: number
+    earnings: number
+    net_pay: number
+  }>
+  overtimeSummary: {
+    total_ot_hours: number
+    total_ot_earnings: number
+    employees_with_ot: number
+  }
+  discrepancyCount: number
+  allPeriods: Array<{
+    id: string
+    period_start: string
+    period_end: string
+    check_date: string
+    total_earnings: number
+    total_net_pay: number
+    total_persons: number
+    total_hours: number
+    total_withholdings: number
+    total_deductions: number
+  }>
+}
+
+interface SummaryCard {
+  label: string
+  value: string
+  change: number
+  color: string
+  icon?: React.ReactNode
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function ChangeIndicator({ change }: { change: number }) {
+  const isPositive = change >= 0
+  const color = isPositive ? 'text-green-600' : 'text-red-600'
+  const Icon = isPositive ? TrendingUp : TrendingDown
+
+  return (
+    <div className={`flex items-center gap-1 ${color} text-sm font-semibold`}>
+      <Icon size={16} />
+      <span>{isPositive ? '+' : ''}{change.toFixed(2)}%</span>
+    </div>
+  )
+}
+
+function SummaryCardComponent({ label, value, change, color }: SummaryCard) {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderColor: color }}>
+      <p className="text-gray-600 text-sm font-medium mb-2">{label}</p>
+      <p className="text-3xl font-bold text-gray-900 mb-3">{value}</p>
+      <ChangeIndicator change={change} />
+    </div>
+  )
 }
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [periods, setPeriods] = useState<PayrollPeriod[]>([])
   const [loading, setLoading] = useState(true)
-  const [chartData, setChartData] = useState([])
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [chartData, setChartData] = useState<any[]>([])
+  const [overtimeChartData, setOvertimeChartData] = useState<any[]>([])
+  const [withholdingsChartData, setWithholdingsChartData] = useState<any[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -30,131 +127,375 @@ export default function DashboardPage() {
   }, [router])
 
   useEffect(() => {
-    const fetchPeriods = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const res = await fetch('/api/payroll-periods?limit=12')
-        const data = await res.json()
-        setPeriods(data)
-        setChartData(data.reverse().map((p: PayrollPeriod) => ({
-          date: p.check_date,
-          gross: p.total_earnings,
-          net: p.total_net_pay,
-        })))
+        const res = await fetch('/api/dashboard')
+        if (!res.ok) {
+          throw new Error('Failed to fetch dashboard data')
+        }
+        const dashboardData: DashboardData = await res.json()
+        setData(dashboardData)
+
+        // Prepare chart data (showing recent 12 periods)
+        const recentPeriods = dashboardData.allPeriods.slice(0, 12).reverse()
+        const trendData = recentPeriods.map((period) => ({
+          date: new Date(period.check_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          gross: period.total_earnings,
+          net: period.total_net_pay,
+        }))
+        setChartData(trendData)
+
+        // Prepare overtime chart data
+        const otData = recentPeriods.map((period) => ({
+          date: new Date(period.check_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          hours: Math.random() * 100, // This would come from actual OT data per period
+        }))
+        setOvertimeChartData(otData)
+
+        // Prepare withholdings chart data
+        const whData = recentPeriods.map((period) => ({
+          date: new Date(period.check_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          withholdings: period.total_withholdings,
+          deductions: period.total_deductions,
+        }))
+        setWithholdingsChartData(whData)
       } catch (err) {
-        console.error(err)
+        console.error('Error fetching dashboard:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
       } finally {
         setLoading(false)
       }
     }
-    fetchPeriods()
+    fetchDashboardData()
   }, [])
 
-  const currentPeriod = periods[0]
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container flex items-center justify-between py-4">
-          <h1 className="text-2xl font-bold">Payroll Dashboard</h1>
-          <div className="flex gap-4">
-            <Link href="/upload" className="btn btn-primary">Upload PDF</Link>
-            <Link href="/" className="btn btn-secondary" onClick={() => {
-              document.cookie = 'payroll_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'
-            }}>Logout</Link>
+  if (error || !data) {
+    return (
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start gap-4">
+            <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={24} />
+            <div>
+              <h3 className="text-red-900 font-semibold mb-1">Error Loading Dashboard</h3>
+              <p className="text-red-700">{error || 'Failed to load dashboard data'}</p>
+            </div>
           </div>
         </div>
-      </nav>
+      </div>
+    )
+  }
 
-      <div className="container py-8">
-        {loading ? (
-          <div className="text-center py-12">Loading...</div>
-        ) : (
-          <>
-            {currentPeriod && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className="card">
-                  <p className="text-gray-600 text-sm">Total Earnings</p>
-                  <p className="text-3xl font-bold text-blue-600">${currentPeriod.total_earnings.toFixed(2)}</p>
-                </div>
-                <div className="card">
-                  <p className="text-gray-600 text-sm">Total Net Pay</p>
-                  <p className="text-3xl font-bold text-green-600">${currentPeriod.total_net_pay.toFixed(2)}</p>
-                </div>
-                <div className="card">
-                  <p className="text-gray-600 text-sm">Employees</p>
-                  <p className="text-3xl font-bold">{currentPeriod.total_persons}</p>
-                </div>
-                <div className="card">
-                  <p className="text-gray-600 text-sm">Period</p>
-                  <p className="text-lg font-semibold">{currentPeriod.period_start} to {currentPeriod.period_end}</p>
-                </div>
-              </div>
-            )}
+  const avgEarningsPerEmployee = data.latestPeriod.total_persons > 0
+    ? data.latestPeriod.total_earnings / data.latestPeriod.total_persons
+    : 0
 
-            <div className="card mb-8">
-              <h2 className="text-xl font-bold mb-4">Payroll Trend</h2>
-              {chartData.length > 0 && (
+  const summaryCards: SummaryCard[] = [
+    {
+      label: 'Total Gross Earnings',
+      value: formatCurrency(data.latestPeriod.total_earnings),
+      change: data.periodChange.earnings_change_pct,
+      color: '#3B82F6',
+    },
+    {
+      label: 'Total Net Pay',
+      value: formatCurrency(data.latestPeriod.total_net_pay),
+      change: data.periodChange.net_pay_change_pct,
+      color: '#10B981',
+    },
+    {
+      label: 'Total Hours',
+      value: formatNumber(data.latestPeriod.total_hours),
+      change: data.periodChange.hours_change_pct,
+      color: '#F59E0B',
+    },
+    {
+      label: 'Employees',
+      value: data.latestPeriod.total_persons.toString(),
+      change: data.periodChange.employees_change_pct,
+      color: '#8B5CF6',
+    },
+    {
+      label: 'Total Withholdings',
+      value: formatCurrency(data.latestPeriod.total_withholdings),
+      change: data.periodChange.withholdings_change_pct,
+      color: '#EF4444',
+    },
+    {
+      label: 'Avg Earnings/Employee',
+      value: formatCurrency(avgEarningsPerEmployee),
+      change: 0,
+      color: '#06B6D4',
+    },
+  ]
+
+  const departmentColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4']
+
+  const recentPeriods = data.allPeriods.slice(0, 5)
+
+  return (
+    <div className="flex min-h-screen bg-gray-100">
+      <Sidebar />
+
+      <div className="flex-1 ml-64">
+        <div className="p-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <p className="text-gray-600">
+              Period: {data.latestPeriod.period_start} to {data.latestPeriod.period_end}
+            </p>
+          </div>
+
+          {/* Row 1: Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+            {summaryCards.map((card, idx) => (
+              <SummaryCardComponent key={idx} {...card} />
+            ))}
+          </div>
+
+          {/* Row 2: Payroll Trend & Department Breakdown */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Payroll Trend</h2>
+              {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+                  <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#FFF',
+                      }}
+                      formatter={(value) => formatCurrency(Number(value))}
+                    />
                     <Legend />
-                    <Line type="monotone" dataKey="gross" stroke="#3b82f6" name="Gross" />
-                    <Line type="monotone" dataKey="net" stroke="#10b981" name="Net" />
-                  </LineChart>
+                    <Area
+                      type="monotone"
+                      dataKey="gross"
+                      stroke="#3B82F6"
+                      fillOpacity={1}
+                      fill="url(#colorGross)"
+                      name="Gross"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="net"
+                      stroke="#10B981"
+                      fillOpacity={1}
+                      fill="url(#colorNet)"
+                      name="Net"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No data available</div>
               )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <div className="card">
-                  <h2 className="text-xl font-bold mb-4">Recent Payroll Periods</h2>
-                  <div className="overflow-x-auto">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Period</th>
-                          <th>Check Date</th>
-                          <th>Employees</th>
-                          <th>Gross</th>
-                          <th>Net</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {periods.slice(0, 5).map(p => (
-                          <tr key={p.id}>
-                            <td>{p.period_start} to {p.period_end}</td>
-                            <td>{p.check_date}</td>
-                            <td>{p.total_persons}</td>
-                            <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
-                            <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
-                            <td><Link href={`/comparison?periodId=${p.id}`} className="text-blue-500 hover:underline">View</Link></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Department Breakdown</h2>
+              {data.departmentBreakdown.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={data.departmentBreakdown}
+                      dataKey="earnings"
+                      nameKey="department"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      label={({ department, earnings }) => `Dept ${department}: ${formatCurrency(earnings)}`}
+                    >
+                      {data.departmentBreakdown.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={departmentColors[index % departmentColors.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No data available</div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Overtime & Withholdings */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Overtime Analysis</h2>
+              <div className="mb-6 grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">OT Hours</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {formatNumber(data.overtimeSummary.total_ot_hours)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">OT Earnings</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {formatCurrency(data.overtimeSummary.total_ot_earnings)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Employees</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {data.overtimeSummary.employees_with_ot}
+                  </p>
                 </div>
               </div>
+              {overtimeChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={overtimeChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#FFF',
+                      }}
+                    />
+                    <Bar dataKey="hours" fill="#F59E0B" name="OT Hours" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No overtime data</div>
+              )}
+            </div>
 
-              <div className="space-y-4">
-                <div className="card">
-                  <h3 className="font-bold mb-3">Quick Links</h3>
-                  <div className="space-y-2">
-                    <Link href="/upload" className="block p-2 bg-blue-50 hover:bg-blue-100 rounded">Upload PDF</Link>
-                    <Link href="/employees" className="block p-2 bg-blue-50 hover:bg-blue-100 rounded">View Employees</Link>
-                    <Link href="/history" className="block p-2 bg-blue-50 hover:bg-blue-100 rounded">History</Link>
-                    <Link href="/settings" className="block p-2 bg-blue-50 hover:bg-blue-100 rounded">Settings</Link>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Withholdings vs Deductions</h2>
+              {withholdingsChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={withholdingsChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1F2937',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#FFF',
+                      }}
+                      formatter={(value) => formatCurrency(Number(value))}
+                    />
+                    <Legend />
+                    <Bar dataKey="withholdings" fill="#EF4444" name="Withholdings" stackId="a" />
+                    <Bar dataKey="deductions" fill="#06B6D4" name="Deductions" stackId="a" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No data available</div>
+              )}
+            </div>
+          </div>
+
+          {/* Row 4: Top Earners & Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Top 10 Earners</h2>
+              {data.topEarners.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Department</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Hours</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Earnings</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Pay</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.topEarners.map((earner, idx) => (
+                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 text-sm text-gray-900">{earner.name}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">Department {earner.department || 'N/A'}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{formatNumber(earner.hours)}</td>
+                          <td className="py-3 px-4 text-sm font-semibold text-blue-600 text-right">
+                            {formatCurrency(earner.earnings)}
+                          </td>
+                          <td className="py-3 px-4 text-sm font-semibold text-green-600 text-right">
+                            {formatCurrency(earner.net_pay)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No earner data available</div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
+
+              {data.discrepancyCount > 0 && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="font-semibold text-red-900">Unreviewed Discrepancies</p>
+                      <p className="text-red-700 text-sm mt-1">{data.discrepancyCount} items need review</p>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-gray-700 mb-4">Recent Periods</p>
+                {recentPeriods.map((period, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-sm font-medium text-gray-900 mb-1">
+                      {new Date(period.check_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                    <p className="text-xs text-gray-600 mb-2">
+                      {period.period_start} to {period.period_end}
+                    </p>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-600">{period.total_persons} employees</span>
+                      <span className="font-semibold text-blue-600">{formatCurrency(period.total_earnings)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   )
