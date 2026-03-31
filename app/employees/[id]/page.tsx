@@ -59,19 +59,19 @@ export default function EmployeeDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
-        <div className="container flex items-center justify-between py-4">
-          <Link href="/dashboard" className="text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/employees" className="text-blue-500 hover:underline">Back to Employees</Link>
+        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
+          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
+          <Link href="/employees" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Employees</Link>
         </div>
       </nav>
 
-      <div className="container py-8">
+      <div className="container px-4 sm:px-6 py-4 sm:py-8">
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : employee ? (
           <>
-            <div className="card mb-8">
-              <h1 className="text-3xl font-bold mb-4">{employee.last_name}, {employee.first_name}{employee.middle_initial ? ' ' + employee.middle_initial : ''}</h1>
+            <div className="card mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-4">{employee.last_name}, {employee.first_name}{employee.middle_initial ? ' ' + employee.middle_initial : ''}</h1>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-gray-600 text-sm">Employee ID</p>

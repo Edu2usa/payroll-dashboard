@@ -107,16 +107,16 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
-        <div className="container flex items-center justify-between py-4">
-          <Link href="/dashboard" className="text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-blue-500 hover:underline">Back to Dashboard</Link>
+        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
+          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
+          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
         </div>
       </nav>
 
-      <div className="container py-12">
+      <div className="container px-4 sm:px-6 py-6 sm:py-12">
         <div className="max-w-2xl mx-auto">
           <div className="card">
-            <h1 className="text-3xl font-bold mb-6">Upload Paychex PDFs</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Upload Paychex PDFs</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div

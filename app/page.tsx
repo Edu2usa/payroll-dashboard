@@ -35,9 +35,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800">
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-2 text-gray-900">Payroll Dashboard</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 px-4">
+      <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-gray-900">Payroll Dashboard</h1>
         <p className="text-center text-gray-600 mb-6">Preferred Maintenance, LLC</p>
         
         <form onSubmit={handleLogin} className="space-y-4">

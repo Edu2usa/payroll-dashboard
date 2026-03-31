@@ -101,9 +101,9 @@ function ChangeIndicator({ change }: { change: number }) {
 
 function SummaryCardComponent({ label, value, change, color }: SummaryCard) {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderColor: color }}>
-      <p className="text-gray-600 text-sm font-medium mb-2">{label}</p>
-      <p className="text-3xl font-bold text-gray-900 mb-3">{value}</p>
+    <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 border-l-4" style={{ borderColor: color }}>
+      <p className="text-gray-600 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{label}</p>
+      <p className="text-lg sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-3 truncate">{value}</p>
       <ChangeIndicator change={change} />
     </div>
   )
@@ -181,7 +181,7 @@ export default function DashboardPage() {
     return (
       <div className="flex">
         <Sidebar />
-        <div className="flex-1 ml-64 p-8">
+        <div className="flex-1 lg:ml-64 p-4 sm:p-8 pt-16 lg:pt-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start gap-4">
             <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={24} />
             <div>
@@ -245,27 +245,27 @@ export default function DashboardPage() {
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
 
-      <div className="flex-1 ml-64">
-        <div className="p-8">
+      <div className="flex-1 lg:ml-64">
+        <div className="p-4 sm:p-8 pt-16 lg:pt-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
             <p className="text-gray-600">
               Period: {data.latestPeriod.period_start} to {data.latestPeriod.period_end}
             </p>
           </div>
 
           {/* Row 1: Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
             {summaryCards.map((card, idx) => (
               <SummaryCardComponent key={idx} {...card} />
             ))}
           </div>
 
           {/* Row 2: Payroll Trend & Department Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Payroll Trend</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 mb-8">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Payroll Trend</h2>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
@@ -315,8 +315,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Department Breakdown</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Department Breakdown</h2>
               {data.departmentBreakdown.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -349,9 +349,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 3: Overtime & Withholdings */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Overtime Analysis</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Overtime Analysis</h2>
               <div className="mb-6 grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">OT Hours</p>
@@ -394,8 +394,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Withholdings vs Deductions</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Withholdings vs Deductions</h2>
               {withholdingsChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={withholdingsChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
@@ -423,9 +423,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 4: Top Earners & Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Top 10 Earners</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-4 sm:p-6 overflow-x-auto">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Top 10 Earners</h2>
               {data.topEarners.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -460,8 +460,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Activity</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Recent Activity</h2>
 
               {data.discrepancyCount > 0 && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

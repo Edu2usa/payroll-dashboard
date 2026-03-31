@@ -191,24 +191,24 @@ function ComparisonContent() {
       {current && previous && !comparing && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-              <h3 className="text-sm font-semibold text-gray-500 mb-1">Current Period</h3>
-              <p className="text-gray-600 text-sm mb-2">{current.period_start} to {current.period_end}</p>
-              <p className="text-3xl font-bold text-blue-600">{fmt(current.total_earnings)}</p>
-              <p className="text-sm text-gray-600 mt-1">{current.total_persons} employees | {fmtNum(current.total_hours)} hours</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-blue-500">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Current Period</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-2">{current.period_start} to {current.period_end}</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-600">{fmt(current.total_earnings)}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">{current.total_persons} employees | {fmtNum(current.total_hours)} hours</p>
             </div>
-            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-400">
-              <h3 className="text-sm font-semibold text-gray-500 mb-1">Compare Period</h3>
-              <p className="text-gray-600 text-sm mb-2">{previous.period_start} to {previous.period_end}</p>
-              <p className="text-3xl font-bold text-gray-700">{fmt(previous.total_earnings)}</p>
-              <p className="text-sm text-gray-600 mt-1">{previous.total_persons} employees | {fmtNum(previous.total_hours)} hours</p>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-gray-400">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Compare Period</h3>
+              <p className="text-gray-600 text-xs sm:text-sm mb-2">{previous.period_start} to {previous.period_end}</p>
+              <p className="text-xl sm:text-3xl font-bold text-gray-700">{fmt(previous.total_earnings)}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">{previous.total_persons} employees | {fmtNum(previous.total_hours)} hours</p>
             </div>
           </div>
 
           {/* Hours & Earnings Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Hours & Earnings Breakdown</h2>
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Hours & Earnings Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -270,8 +270,8 @@ function ComparisonContent() {
           </div>
 
           {/* Withholdings Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Withholdings Breakdown</h2>
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Withholdings Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -310,8 +310,8 @@ function ComparisonContent() {
           </div>
 
           {/* Deductions Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Deductions Breakdown</h2>
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Deductions Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -350,8 +350,8 @@ function ComparisonContent() {
           </div>
 
           {/* Net Pay & Totals Summary */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Summary Totals</h2>
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Summary Totals</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -399,14 +399,14 @@ export default function ComparisonPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b">
-        <div className="container flex items-center justify-between py-4">
-          <Link href="/dashboard" className="text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-blue-500 hover:underline">Back to Dashboard</Link>
+        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
+          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
+          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
         </div>
       </nav>
 
-      <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-6">Payroll Comparison</h1>
+      <div className="container px-4 sm:px-6 py-4 sm:py-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Payroll Comparison</h1>
         <Suspense fallback={<div>Loading...</div>}>
           <ComparisonContent />
         </Suspense>
