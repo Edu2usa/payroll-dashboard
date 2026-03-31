@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
       .from('employees')
       .select('*')
       .eq('is_active', true)
-      .order('name')
+      .order('last_name')
+      .order('first_name')
       .limit(limit)
 
     if (search) {
@@ -30,10 +31,9 @@ export async function GET(request: NextRequest) {
         .select('*')
         .or(`last_name.ilike.%${search}%,first_name.ilike.%${search}%,employee_id.eq.${isNaN(parseInt(search)) ? -1 : parseInt(search)}`)
         .eq('is_active', true)
-        .order('last_name,first_name')
+        .order('last_name')
+        .order('first_name')
         .limit(limit)
-    } else {
-      query = query.order('last_name,first_name')
     }
 
     const { data, error } = await query

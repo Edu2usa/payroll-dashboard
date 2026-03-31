@@ -22,39 +22,83 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const parsed = await parsePaychexPDF(buffer)
 
-    // Create payroll period
-    const { data: period, error: periodError } = await supabaseServer
+    // Check if this payroll period already exists
+    const { data: existingPeriod } = await supabaseServer
       .from('payroll_periods')
-      .insert({
-        period_start: parsed.period_start,
-        period_end: parsed.period_end,
-        check_date: parsed.check_date,
-        run_date: parsed.run_date,
-        company_id: 'default',
-        total_persons: parsed.totals.total_persons,
-        total_transactions: parsed.totals.total_transactions,
-        total_hours: parsed.totals.total_hours,
-        total_earnings: parsed.totals.total_earnings,
-        total_withholdings: parsed.totals.total_withholdings,
-        total_deductions: parsed.totals.total_deductions,
-        total_employer_liability: parsed.totals.total_employer_liability,
-        total_tax_liability: parsed.totals.total_tax_liability,
-        total_net_pay: parsed.totals.total_net_pay,
-        raw_text: '',
-      })
-      .select()
+      .select('id')
+      .eq('period_start', parsed.period_start)
+      .eq('period_end', parsed.period_end)
+      .limit(1)
 
-    if (periodError || !period || period.length === 0) {
-      console.error('Period insert error:', JSON.stringify(periodError))
-      console.error('Parsed dates:', JSON.stringify({ period_start: parsed.period_start, period_end: parsed.period_end, check_date: parsed.check_date, run_date: parsed.run_date }))
-      console.error('Parsed totals:', JSON.stringify(parsed.totals))
-      return NextResponse.json(
-        { error: 'Failed to create payroll period', detail: periodError?.message || 'No data returned', parsed_dates: { period_start: parsed.period_start, period_end: parsed.period_end, check_date: parsed.check_date } },
-        { status: 500 }
-      )
+    let payrollPeriodId: string
+
+    if (existingPeriod && existingPeriod.length > 0) {
+      // Period already exists — delete old data and replace
+      payrollPeriodId = existingPeriod[0].id
+      console.log(`Replacing existing period ${payrollPeriodId} (${parsed.period_start} - ${parsed.period_end})`)
+
+      // Delete old discrepancies, entries for this period
+      await supabaseServer.from('discrepancies').delete().eq('current_period_id', payrollPeriodId)
+      await supabaseServer.from('payroll_entries').delete().eq('payroll_period_id', payrollPeriodId)
+
+      // Update the period record with new totals
+      const { error: updateError } = await supabaseServer
+        .from('payroll_periods')
+        .update({
+          check_date: parsed.check_date,
+          run_date: parsed.run_date,
+          total_persons: parsed.totals.total_persons,
+          total_transactions: parsed.totals.total_transactions,
+          total_hours: parsed.totals.total_hours,
+          total_earnings: parsed.totals.total_earnings,
+          total_withholdings: parsed.totals.total_withholdings,
+          total_deductions: parsed.totals.total_deductions,
+          total_employer_liability: parsed.totals.total_employer_liability,
+          total_tax_liability: parsed.totals.total_tax_liability,
+          total_net_pay: parsed.totals.total_net_pay,
+        })
+        .eq('id', payrollPeriodId)
+
+      if (updateError) {
+        console.error('Period update error:', JSON.stringify(updateError))
+        return NextResponse.json(
+          { error: 'Failed to update payroll period', detail: updateError?.message },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Create new payroll period
+      const { data: period, error: periodError } = await supabaseServer
+        .from('payroll_periods')
+        .insert({
+          period_start: parsed.period_start,
+          period_end: parsed.period_end,
+          check_date: parsed.check_date,
+          run_date: parsed.run_date,
+          company_id: 'default',
+          total_persons: parsed.totals.total_persons,
+          total_transactions: parsed.totals.total_transactions,
+          total_hours: parsed.totals.total_hours,
+          total_earnings: parsed.totals.total_earnings,
+          total_withholdings: parsed.totals.total_withholdings,
+          total_deductions: parsed.totals.total_deductions,
+          total_employer_liability: parsed.totals.total_employer_liability,
+          total_tax_liability: parsed.totals.total_tax_liability,
+          total_net_pay: parsed.totals.total_net_pay,
+          raw_text: '',
+        })
+        .select()
+
+      if (periodError || !period || period.length === 0) {
+        console.error('Period insert error:', JSON.stringify(periodError))
+        return NextResponse.json(
+          { error: 'Failed to create payroll period', detail: periodError?.message || 'No data returned' },
+          { status: 500 }
+        )
+      }
+
+      payrollPeriodId = period[0].id
     }
-
-    const payrollPeriodId = period[0].id
 
     // Upsert employees
     let upsertErrorCount = 0
