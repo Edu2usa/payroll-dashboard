@@ -22,8 +22,7 @@ export async function setWebSession(): Promise<void> {
 }
 
 export function validatePassword(password: string): boolean {
-  // No password required until go-live
-  return true
+  return password === APP_PASSWORD
 }
 
 export function validateApiKey(apiKey: string): boolean {
