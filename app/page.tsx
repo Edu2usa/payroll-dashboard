@@ -35,14 +35,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 px-4">
-      <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8 w-full max-w-md">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-gray-900">Payroll Dashboard</h1>
-        <p className="text-center text-gray-600 mb-6">Preferred Maintenance, LLC</p>
-        
-        <form onSubmit={handleLogin} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-heading via-brand-primary to-brand-secondary px-4">
+      <div className="bg-white rounded-xl shadow-2xl p-6 sm:p-10 w-full max-w-md border border-slate-200">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 rounded-lg bg-brand-primary flex items-center justify-center mb-4">
+            <span className="font-mono font-bold text-white text-lg">PM</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1">Payroll Dashboard</h1>
+          <p className="text-center text-sm text-slate-500 font-mono">Preferred Maintenance, LLC</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
               Password
             </label>
             <input
@@ -52,11 +57,12 @@ export default function LoginPage() {
               className="input"
               placeholder="Enter password"
               disabled={loading}
+              autoFocus
             />
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-md">
               {error}
             </div>
           )}
@@ -64,9 +70,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary w-full"
+            className="btn btn-cta w-full"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

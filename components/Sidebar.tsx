@@ -24,10 +24,15 @@ export function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Payroll</h1>
-          <p className="text-slate-400 text-sm mt-1">Dashboard</p>
+      <div className="p-6 border-b border-slate-700/60 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-md bg-brand-cta flex items-center justify-center">
+            <span className="font-mono font-bold text-slate-900 text-sm">PM</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">Payroll</h1>
+            <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">Dashboard</p>
+          </div>
         </div>
         <button
           onClick={() => setMobileOpen(false)}
@@ -47,10 +52,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-sm transition-colors duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-700/80 hover:text-white'
                 }`}
               >
                 <Icon size={20} />
@@ -61,11 +66,11 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-slate-700/60">
         <Link
           href="/"
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-4 py-2.5 rounded-md text-sm text-slate-300 hover:bg-slate-700/80 hover:text-white transition-colors duration-200 w-full cursor-pointer"
         >
           <LogOut size={20} />
           <span>Logout</span>
