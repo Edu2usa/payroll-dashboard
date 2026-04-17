@@ -8,7 +8,7 @@
   }
 
   body {
-    @apply bg-brand-bg text-slate-800;
+    @apply bg-brand-bg text-slate-800 antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -18,6 +18,10 @@
   :focus-visible {
     @apply outline-none ring-2 ring-brand-secondary ring-offset-2 ring-offset-brand-bg;
   }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
 }
 
 @layer components {
@@ -66,7 +70,7 @@
   }
 
   .table th {
-    @apply bg-slate-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 border-b border-slate-200;
+    @apply bg-slate-50 px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 border-b border-slate-200 whitespace-nowrap;
   }
 
   .table td {
@@ -79,6 +83,18 @@
 
   .table tr:hover {
     @apply bg-slate-50;
+  }
+
+  .page-header {
+    @apply mb-8;
+  }
+
+  .page-header h1 {
+    @apply text-2xl sm:text-3xl font-bold;
+  }
+
+  .page-header p {
+    @apply text-slate-500 text-sm mt-1;
   }
 }
 
