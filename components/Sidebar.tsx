@@ -22,38 +22,47 @@ export function Sidebar() {
     await fetch('/api/auth/logout', { method: 'POST' })
   }
 
+  const isActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+
   const sidebarContent = (
-    <>
-      <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Payroll</h1>
-          <p className="text-slate-400 text-sm mt-1">Dashboard</p>
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-5 border-b border-slate-700/50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow">
+            <span className="text-white text-sm font-bold tracking-tight">PM</span>
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm leading-tight">Preferred Maintenance</p>
+            <p className="text-slate-400 text-xs">Payroll Dashboard</p>
+          </div>
         </div>
         <button
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden text-slate-400 hover:text-white"
+          className="lg:hidden text-slate-400 hover:text-white p-1 rounded transition-colors"
         >
-          <X size={24} />
+          <X size={18} />
         </button>
       </div>
 
-      <nav className="flex-1 px-4 py-8">
-        <div className="space-y-2">
+      <nav className="flex-1 px-3 py-5">
+        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-3 mb-2">Navigation</p>
+        <div className="space-y-0.5">
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+            const active = isActive(item.href)
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  active
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
                 }`}
               >
-                <Icon size={20} />
+                <Icon size={17} className={active ? 'opacity-100' : 'opacity-60'} />
                 <span>{item.label}</span>
               </Link>
             )
@@ -61,46 +70,42 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="px-3 py-4 border-t border-slate-700/50">
         <Link
           href="/"
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100 transition-all duration-150 w-full"
         >
-          <LogOut size={20} />
-          <span>Logout</span>
+          <LogOut size={17} className="opacity-60" />
+          <span>Sign Out</span>
         </Link>
       </div>
-    </>
+    </div>
   )
 
   return (
     <>
-      {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white p-2 rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white p-2 rounded-lg shadow-lg border border-slate-700/50"
       >
-        <Menu size={24} />
+        <Menu size={18} />
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile sidebar (slide in) */}
-      <div className={`lg:hidden fixed left-0 top-0 w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white min-h-screen z-50 shadow-xl transform transition-transform duration-300 ${
+      <div className={`lg:hidden fixed left-0 top-0 w-64 bg-slate-900 text-white h-screen z-50 shadow-2xl transform transition-transform duration-300 ease-in-out ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {sidebarContent}
       </div>
 
-      {/* Desktop sidebar (always visible) */}
-      <div className="hidden lg:block w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white min-h-screen fixed left-0 top-0 shadow-xl">
+      <div className="hidden lg:block w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 shadow-xl">
         {sidebarContent}
       </div>
     </>

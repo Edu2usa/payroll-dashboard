@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Sidebar } from '@/components/Sidebar'
+import { Upload, FileText, CheckCircle2, XCircle, Loader2, Clock, X } from 'lucide-react'
 
 interface UploadResult {
   fileName: string
@@ -18,9 +19,11 @@ export default function UploadPage() {
   const [results, setResults] = useState<UploadResult[]>([])
   const [uploading, setUploading] = useState(false)
   const [allDone, setAllDone] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    setDragging(false)
     const dropped = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'))
     if (dropped.length > 0) {
       setFiles(prev => [...prev, ...dropped])
@@ -54,46 +57,32 @@ export default function UploadPage() {
     setUploading(true)
     setAllDone(false)
 
-    const initialResults: UploadResult[] = files.map(f => ({
-      fileName: f.name,
-      status: 'pending',
-    }))
+    const initialResults: UploadResult[] = files.map(f => ({ fileName: f.name, status: 'pending' }))
     setResults(initialResults)
 
     for (let i = 0; i < files.length; i++) {
-      // Update status to uploading
       setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'uploading' } : r))
 
       try {
         const formData = new FormData()
         formData.append('file', files[i])
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
 
         if (!res.ok) {
           const err = await res.json()
-          setResults(prev => prev.map((r, idx) =>
-            idx === i ? { ...r, status: 'error', message: err.error || 'Upload failed' } : r
-          ))
+          setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'error', message: err.error || 'Upload failed' } : r))
         } else {
           const result = await res.json()
-          setResults(prev => prev.map((r, idx) =>
-            idx === i ? {
-              ...r,
-              status: 'success',
-              employeeCount: result.employeeCount,
-              discrepancyCount: result.discrepancyCount,
-              message: `${result.employeeCount} employees, ${result.discrepancyCount} discrepancies`,
-            } : r
-          ))
+          setResults(prev => prev.map((r, idx) => idx === i ? {
+            ...r, status: 'success',
+            employeeCount: result.employeeCount,
+            discrepancyCount: result.discrepancyCount,
+            message: `${result.employeeCount} employees, ${result.discrepancyCount} discrepancies`,
+          } : r))
         }
       } catch {
-        setResults(prev => prev.map((r, idx) =>
-          idx === i ? { ...r, status: 'error', message: 'Upload failed' } : r
-        ))
+        setResults(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'error', message: 'Upload failed' } : r))
       }
     }
 
@@ -104,113 +93,113 @@ export default function UploadPage() {
   const successCount = results.filter(r => r.status === 'success').length
   const errorCount = results.filter(r => r.status === 'error').length
 
+  const statusIcon = (status: UploadResult['status']) => {
+    if (status === 'uploading') return <Loader2 size={15} className="animate-spin text-blue-600" />
+    if (status === 'success') return <CheckCircle2 size={15} className="text-emerald-600" />
+    if (status === 'error') return <XCircle size={15} className="text-red-500" />
+    return <Clock size={15} className="text-gray-400" />
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="container px-4 sm:px-6 py-6 sm:py-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="card">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Upload Paychex PDFs</h1>
+      <div className="flex-1 lg:ml-64">
+        <div className="p-4 sm:p-8 pt-16 lg:pt-8">
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="page-header">
+            <h1>Upload Payroll PDFs</h1>
+            <p>Import Paychex payroll journal PDFs to populate the dashboard</p>
+          </div>
+
+          <div className="max-w-2xl">
+            <form onSubmit={handleSubmit} className="space-y-5">
+
+              {/* Drop zone */}
               <div
                 onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition"
+                onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
+                className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-150 ${
+                  dragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50/40'
+                }`}
               >
-                <input
-                  type="file"
-                  accept=".pdf"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="file-input"
-                  disabled={uploading}
-                />
-                <label htmlFor="file-input" className="cursor-pointer">
-                  <div className="text-5xl mb-3">📄</div>
-                  <p className="text-xl font-semibold mb-2">
-                    {files.length === 0
-                      ? 'Drop PDFs here or click to select'
-                      : `${files.length} file${files.length > 1 ? 's' : ''} selected`}
+                <input type="file" accept=".pdf" multiple onChange={handleFileSelect} className="hidden" id="file-input" disabled={uploading} />
+                <label htmlFor="file-input" className="cursor-pointer block">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-4 bg-blue-100 rounded-2xl">
+                      <Upload size={28} className="text-blue-600" />
+                    </div>
+                  </div>
+                  <p className="text-base font-semibold text-gray-800 mb-1">
+                    {files.length === 0 ? 'Drop PDFs here or click to select' : `${files.length} file${files.length > 1 ? 's' : ''} selected`}
                   </p>
-                  <p className="text-gray-600">Select multiple Paychex payroll journal PDFs at once</p>
+                  <p className="text-sm text-gray-500">Select multiple Paychex payroll journal PDFs</p>
                 </label>
               </div>
 
               {/* File list */}
               {files.length > 0 && !uploading && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm text-gray-700">Files to upload:</h3>
-                    <button type="button" onClick={clearAll} className="text-sm text-red-500 hover:underline">
+                <div className="card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-gray-700">Files to upload</p>
+                    <button type="button" onClick={clearAll} className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors">
                       Clear all
                     </button>
                   </div>
-                  {files.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm">
-                      <span className="truncate flex-1 mr-2">{f.name}</span>
-                      <span className="text-gray-400 mr-3 whitespace-nowrap">{(f.size / 1024).toFixed(0)} KB</span>
-                      <button type="button" onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600 font-bold">
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                  <div className="space-y-2">
+                    {files.map((f, i) => (
+                      <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2.5">
+                        <FileText size={15} className="text-blue-500 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 truncate flex-1">{f.name}</span>
+                        <span className="text-xs text-gray-400 whitespace-nowrap">{(f.size / 1024).toFixed(0)} KB</span>
+                        <button type="button" onClick={() => removeFile(i)} className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Upload progress / results */}
+              {/* Progress */}
               {results.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-gray-700">Progress:</h3>
-                  {results.map((r, i) => (
-                    <div key={i} className={`flex items-center justify-between rounded px-3 py-2 text-sm ${
-                      r.status === 'success' ? 'bg-green-50 border border-green-200' :
-                      r.status === 'error' ? 'bg-red-50 border border-red-200' :
-                      r.status === 'uploading' ? 'bg-blue-50 border border-blue-200' :
-                      'bg-gray-50 border border-gray-200'
-                    }`}>
-                      <span className="truncate flex-1 mr-2">
-                        {r.status === 'uploading' && '⏳ '}
-                        {r.status === 'success' && '✅ '}
-                        {r.status === 'error' && '❌ '}
-                        {r.status === 'pending' && '⏸ '}
-                        {r.fileName}
-                      </span>
-                      <span className={`text-xs whitespace-nowrap ${
-                        r.status === 'success' ? 'text-green-700' :
-                        r.status === 'error' ? 'text-red-700' :
-                        r.status === 'uploading' ? 'text-blue-700' :
-                        'text-gray-500'
+                <div className="card p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Progress</p>
+                  <div className="space-y-2">
+                    {results.map((r, i) => (
+                      <div key={i} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 border text-sm ${
+                        r.status === 'success' ? 'bg-emerald-50 border-emerald-200' :
+                        r.status === 'error' ? 'bg-red-50 border-red-200' :
+                        r.status === 'uploading' ? 'bg-blue-50 border-blue-200' :
+                        'bg-gray-50 border-gray-200'
                       }`}>
-                        {r.status === 'uploading' ? 'Processing...' :
-                         r.status === 'pending' ? 'Waiting...' :
-                         r.message || ''}
-                      </span>
-                    </div>
-                  ))}
+                        <div className="flex-shrink-0">{statusIcon(r.status)}</div>
+                        <span className="truncate flex-1 font-medium text-gray-800">{r.fileName}</span>
+                        <span className={`text-xs whitespace-nowrap ${
+                          r.status === 'success' ? 'text-emerald-700' :
+                          r.status === 'error' ? 'text-red-700' :
+                          r.status === 'uploading' ? 'text-blue-700' : 'text-gray-500'
+                        }`}>
+                          {r.status === 'uploading' ? 'Processing...' : r.status === 'pending' ? 'Waiting...' : r.message || ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Summary after all done */}
+              {/* Done summary */}
               {allDone && (
-                <div className={`rounded px-4 py-3 text-sm font-medium ${
-                  errorCount === 0 ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                <div className={`rounded-xl px-4 py-3.5 text-sm font-medium flex items-center justify-between ${
+                  errorCount === 0 ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-amber-50 border border-amber-200 text-amber-800'
                 }`}>
-                  {errorCount === 0
-                    ? `All ${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully!`
-                    : `${successCount} succeeded, ${errorCount} failed`}
-                  <button
-                    type="button"
-                    onClick={() => router.push('/dashboard')}
-                    className="ml-4 underline hover:no-underline"
-                  >
+                  <span>
+                    {errorCount === 0
+                      ? `${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully`
+                      : `${successCount} succeeded, ${errorCount} failed`}
+                  </span>
+                  <button type="button" onClick={() => router.push('/dashboard')} className="underline hover:no-underline text-sm ml-4">
                     Go to Dashboard
                   </button>
                 </div>
@@ -219,24 +208,33 @@ export default function UploadPage() {
               <button
                 type="submit"
                 disabled={uploading || files.length === 0}
-                className="btn btn-primary w-full disabled:opacity-50"
+                className="btn btn-primary w-full py-2.5"
               >
-                {uploading
-                  ? `Uploading ${results.filter(r => r.status === 'uploading').length > 0 ? `(${results.filter(r => r.status !== 'pending').length}/${files.length})` : '...'}`
-                  : `Upload & Process ${files.length > 0 ? `(${files.length} file${files.length > 1 ? 's' : ''})` : ''}`}
+                {uploading ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Uploading ({results.filter(r => r.status !== 'pending').length}/{files.length})...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={15} />
+                    Upload & Process{files.length > 0 ? ` (${files.length} file${files.length > 1 ? 's' : ''})` : ''}
+                  </>
+                )}
               </button>
             </form>
 
-            <div className="mt-8 pt-8 border-t">
-              <h3 className="font-bold mb-3">Expected Format</h3>
-              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                <li>Paychex Payroll Journal PDF</li>
-                <li>Select multiple files at once or add them one by one</li>
-                <li>Files are processed sequentially in order</li>
-                <li>Upload oldest payroll first for accurate discrepancy detection</li>
+            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <p className="text-sm font-semibold text-blue-800 mb-2">Expected Format</p>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Paychex Payroll Journal PDF</li>
+                <li>• Select multiple files at once or add one by one</li>
+                <li>• Files are processed sequentially in order</li>
+                <li>• Upload oldest payroll first for accurate discrepancy detection</li>
               </ul>
             </div>
           </div>
+
         </div>
       </div>
     </div>

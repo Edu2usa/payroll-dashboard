@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Sidebar } from '@/components/Sidebar'
+import { ArrowLeftRight } from 'lucide-react'
 
 type PayrollPeriod = {
   id: string
@@ -13,6 +15,10 @@ type PayrollPeriod = {
   total_net_pay: number
   total_persons: number
   created_at: string
+}
+
+function fmt(n: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
 }
 
 export default function HistoryPage() {
@@ -44,45 +50,67 @@ export default function HistoryPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Payroll History</h1>
+      <div className="flex-1 lg:ml-64">
+        <div className="p-4 sm:p-8 pt-16 lg:pt-8">
 
-        {loading ? (
-          <div className="text-center py-12">Loading...</div>
-        ) : (
-          <div className="card">
-            {periods.length === 0 ? (
-              <p className="text-center py-12 text-gray-500">No payroll periods found</p>
+          <div className="page-header">
+            <h1>Payroll History</h1>
+            <p>All uploaded payroll periods</p>
+          </div>
+
+          <div className="card p-0 overflow-hidden">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-600"></div>
+              </div>
+            ) : periods.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <p className="font-medium text-gray-500">No payroll periods found</p>
+                <p className="text-sm mt-1">
+                  <Link href="/upload" className="text-blue-600 hover:underline">Upload PDFs</Link> to get started
+                </p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
                     <tr>
+                      <th>#</th>
                       <th>Period</th>
-                      <th>Check Date</th>
-                      <th>Employees</th>
-                      <th>Earnings</th>
-                      <th>Net Pay</th>
+                      <th className="hidden sm:table-cell">Check Date</th>
+                      <th className="text-right hidden md:table-cell">Employees</th>
+                      <th className="text-right">Earnings</th>
+                      <th className="text-right hidden sm:table-cell">Net Pay</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {periods.map(p => (
+                    {periods.map((p, idx) => (
                       <tr key={p.id}>
-                        <td className="text-sm">{p.period_start} to {p.period_end}</td>
-                        <td>{p.check_date}</td>
-                        <td>{p.total_persons}</td>
-                        <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
-                        <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
-                        <td><Link href={`/comparison?currentId=${p.id}`} className="text-blue-500 hover:underline">Compare</Link></td>
+                        <td className="text-xs text-gray-400 font-medium">{idx + 1}</td>
+                        <td>
+                          <p className="text-sm font-medium text-gray-800">{p.period_start} — {p.period_end}</p>
+                        </td>
+                        <td className="hidden sm:table-cell text-sm text-gray-500">{p.check_date}</td>
+                        <td className="hidden md:table-cell text-right">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            {p.total_persons} emp
+                          </span>
+                        </td>
+                        <td className="text-right text-sm font-semibold text-blue-600">{fmt(p.total_earnings)}</td>
+                        <td className="text-right text-sm font-semibold text-emerald-600 hidden sm:table-cell">{fmt(p.total_net_pay)}</td>
+                        <td className="text-right">
+                          <Link
+                            href={`/comparison?currentId=${p.id}`}
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors"
+                          >
+                            <ArrowLeftRight size={13} />
+                            Compare
+                          </Link>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -90,7 +118,8 @@ export default function HistoryPage() {
               </div>
             )}
           </div>
-        )}
+
+        </div>
       </div>
     </div>
   )

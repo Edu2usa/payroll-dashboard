@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Sidebar } from '@/components/Sidebar'
+import { Building2, MapPin, Database, Key, LogOut } from 'lucide-react'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -21,54 +22,78 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="flex min-h-screen bg-slate-50">
+      <Sidebar />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Settings</h1>
+      <div className="flex-1 lg:ml-64">
+        <div className="p-4 sm:p-8 pt-16 lg:pt-8">
 
-        <div className="max-w-2xl">
-          <div className="card mb-6">
-            <h2 className="text-xl font-bold mb-4">Application</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Company Name</p>
-                <p className="text-gray-600">Preferred Maintenance, LLC</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Location</p>
-                <p className="text-gray-600">Connecticut</p>
-              </div>
-            </div>
+          <div className="page-header">
+            <h1>Settings</h1>
+            <p>Application configuration and account management</p>
           </div>
 
-          <div className="card mb-6">
-            <h2 className="text-xl font-bold mb-4">Data</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Database</p>
-                <p className="text-gray-600">Supabase PostgreSQL</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">API Authentication</p>
-                <p className="text-gray-600">X-API-Key Header</p>
+          <div className="max-w-2xl space-y-5">
+
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Company</h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                    <Building2 size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Company Name</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">Preferred Maintenance, LLC</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
+                    <MapPin size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Location</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">Connecticut</p>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="card">
-            <h2 className="text-xl font-bold mb-4">Account</h2>
-            <button
-              onClick={handleLogout}
-              className="btn btn-danger"
-            >
-              Logout
-            </button>
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Data & Security</h2>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg flex-shrink-0">
+                    <Database size={16} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Database</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">Supabase PostgreSQL</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg flex-shrink-0">
+                    <Key size={16} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">API Authentication</p>
+                    <p className="text-sm font-semibold text-gray-900 mt-0.5">X-API-Key Header</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Account</h2>
+              <button
+                onClick={handleLogout}
+                className="btn btn-danger"
+              >
+                <LogOut size={15} />
+                Sign Out
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
