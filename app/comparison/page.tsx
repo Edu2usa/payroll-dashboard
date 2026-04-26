@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { AppTopbar } from '@/components/AppTopbar'
 
 type PayrollPeriod = {
   id: string
@@ -157,7 +158,7 @@ function ComparisonContent() {
   if (periods.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        No payroll periods uploaded yet. <Link href="/upload" className="text-blue-500 underline">Upload PDFs</Link> first.
+        No payroll periods uploaded yet. <Link href="/upload" className="emphasis-link underline">Upload PDFs</Link> first.
       </div>
     )
   }
@@ -166,12 +167,12 @@ function ComparisonContent() {
     <>
       {/* Period selectors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="surface-panel bg-white rounded-lg p-4">
           <label className="block text-sm font-semibold text-gray-700 mb-2">Current Period</label>
           <select
             value={currentId}
             onChange={(e) => setCurrentId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pm-brand"
           >
             <option value="">Select period...</option>
             {periods.map(p => (
@@ -181,12 +182,12 @@ function ComparisonContent() {
             ))}
           </select>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="surface-panel bg-white rounded-lg p-4">
           <label className="block text-sm font-semibold text-gray-700 mb-2">Compare To</label>
           <select
             value={previousId}
             onChange={(e) => setPreviousId(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pm-brand"
           >
             <option value="">Select period...</option>
             {periods.map(p => (
@@ -210,13 +211,13 @@ function ComparisonContent() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-blue-500">
+            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6 border-l-4 border-pm-brand">
               <h3 className="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Current Period</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-2">{current.period_start} to {current.period_end}</p>
-              <p className="text-xl sm:text-3xl font-bold text-blue-600">{fmt(current.total_earnings)}</p>
+              <p className="text-xl sm:text-3xl font-bold text-pm-brand">{fmt(current.total_earnings)}</p>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">{current.total_persons} employees | {fmtNum(current.total_hours)} hours</p>
             </div>
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border-l-4 border-gray-400">
+            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6 border-l-4 border-[#6c2f38]">
               <h3 className="text-xs sm:text-sm font-semibold text-gray-500 mb-1">Compare Period</h3>
               <p className="text-gray-600 text-xs sm:text-sm mb-2">{previous.period_start} to {previous.period_end}</p>
               <p className="text-xl sm:text-3xl font-bold text-gray-700">{fmt(previous.total_earnings)}</p>
@@ -226,7 +227,7 @@ function ComparisonContent() {
 
           {/* Employee Differences */}
           {employeeDiff && (employeeDiff.newEmployees.length > 0 || employeeDiff.missingEmployees.length > 0) && (
-            <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+            <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 mb-4 sm:mb-8">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Employee Differences</h2>
               <p className="text-sm text-gray-600 mb-4">
                 Current: {employeeDiff.currentCount} employees | Previous: {employeeDiff.previousCount} employees
@@ -301,16 +302,16 @@ function ComparisonContent() {
           )}
 
           {/* Hours & Earnings Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+          <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 mb-4 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Hours & Earnings Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Category</th>
-                    <th className="text-right py-2 px-3 font-semibold text-blue-600">Current Hours</th>
+                    <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current Hours</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Prev Hours</th>
-                    <th className="text-right py-2 px-3 font-semibold text-blue-600">Current Earnings</th>
+                    <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current Earnings</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Prev Earnings</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">Diff</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">%</th>
@@ -364,14 +365,14 @@ function ComparisonContent() {
           </div>
 
           {/* Withholdings Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+          <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 mb-4 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Withholdings Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Withholding</th>
-                    <th className="text-right py-2 px-3 font-semibold text-blue-600">Current</th>
+                    <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Previous</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">Difference</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">%</th>
@@ -404,14 +405,14 @@ function ComparisonContent() {
           </div>
 
           {/* Deductions Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+          <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 mb-4 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Deductions Breakdown</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Deduction</th>
-                    <th className="text-right py-2 px-3 font-semibold text-blue-600">Current</th>
+                    <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Previous</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">Difference</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">%</th>
@@ -444,14 +445,14 @@ function ComparisonContent() {
           </div>
 
           {/* Net Pay & Totals Summary */}
-          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 mb-4 sm:mb-8">
+          <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 mb-4 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Summary Totals</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Metric</th>
-                    <th className="text-right py-2 px-3 font-semibold text-blue-600">Current</th>
+                    <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Previous</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">Difference</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-700">%</th>
@@ -466,7 +467,7 @@ function ComparisonContent() {
                     { label: 'Employer Liability', cur: current.total_employer_liability, prev: previous.total_employer_liability, isCurrency: true },
                     { label: 'Total Tax Liability', cur: current.total_tax_liability, prev: previous.total_tax_liability, isCurrency: true },
                   ].map((row) => (
-                    <tr key={row.label} className={`border-b border-gray-100 hover:bg-gray-50 ${row.label === 'Net Pay' ? 'bg-blue-50 font-bold' : ''}`}>
+                    <tr key={row.label} className={`border-b border-gray-100 hover:bg-gray-50 ${row.label === 'Net Pay' ? 'bg-pm-brandSoft font-bold' : ''}`}>
                       <td className="py-2 px-3 font-medium text-gray-900">{row.label}</td>
                       <td className="py-2 px-3 text-right">{fmt(row.cur)}</td>
                       <td className="py-2 px-3 text-right text-gray-500">{fmt(row.prev)}</td>
@@ -491,16 +492,14 @@ function ComparisonContent() {
 
 export default function ComparisonPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="brand-page">
+      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Payroll Comparison</h1>
+      <div className="container section-shell">
+        <div className="page-title">
+          <h1>Payroll Comparison</h1>
+          <p>Compare payroll periods with the same brand palette used across the Preferred Maintenance product family.</p>
+        </div>
         <Suspense fallback={<div>Loading...</div>}>
           <ComparisonContent />
         </Suspense>

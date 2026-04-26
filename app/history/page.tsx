@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AppTopbar } from '@/components/AppTopbar'
 
 type PayrollPeriod = {
   id: string
@@ -44,21 +45,19 @@ export default function HistoryPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="brand-page">
+      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Payroll History</h1>
+      <div className="container section-shell">
+        <div className="page-title">
+          <h1>Payroll History</h1>
+          <p>Review prior payroll periods in the shared Preferred Maintenance visual system.</p>
+        </div>
 
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : (
-          <div className="card">
+          <div className="card surface-panel">
             {periods.length === 0 ? (
               <p className="text-center py-12 text-gray-500">No payroll periods found</p>
             ) : (
@@ -80,9 +79,9 @@ export default function HistoryPage() {
                         <td className="text-sm">{p.period_start} to {p.period_end}</td>
                         <td>{p.check_date}</td>
                         <td>{p.total_persons}</td>
-                        <td className="text-blue-600 font-semibold">${p.total_earnings.toFixed(2)}</td>
+                        <td className="brand-money font-semibold">${p.total_earnings.toFixed(2)}</td>
                         <td className="text-green-600 font-semibold">${p.total_net_pay.toFixed(2)}</td>
-                        <td><Link href={`/comparison?currentId=${p.id}`} className="text-blue-500 hover:underline">Compare</Link></td>
+                        <td><Link href={`/comparison?currentId=${p.id}`} className="emphasis-link">Compare</Link></td>
                       </tr>
                     ))}
                   </tbody>

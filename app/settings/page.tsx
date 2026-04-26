@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { AppTopbar } from '@/components/AppTopbar'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -21,19 +21,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="brand-page">
+      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Settings</h1>
+      <div className="container section-shell">
+        <div className="page-title">
+          <h1>Settings</h1>
+          <p>Core application details styled to match the rest of the Preferred Maintenance app family.</p>
+        </div>
 
         <div className="max-w-2xl">
-          <div className="card mb-6">
+          <div className="card surface-panel mb-6">
             <h2 className="text-xl font-bold mb-4">Application</h2>
             <div className="space-y-4">
               <div>
@@ -47,7 +45,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="card mb-6">
+          <div className="card surface-panel mb-6">
             <h2 className="text-xl font-bold mb-4">Data</h2>
             <div className="space-y-4">
               <div>
@@ -61,7 +59,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card surface-panel">
             <h2 className="text-xl font-bold mb-4">Account</h2>
             <button
               onClick={handleLogout}

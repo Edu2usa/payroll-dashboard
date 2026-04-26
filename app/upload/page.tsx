@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { AppTopbar } from '@/components/AppTopbar'
 
 interface UploadResult {
   fileName: string
@@ -105,24 +105,19 @@ export default function UploadPage() {
   const errorCount = results.filter(r => r.status === 'error').length
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
-        </div>
-      </nav>
+    <div className="brand-page">
+      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
 
-      <div className="container px-4 sm:px-6 py-6 sm:py-12">
+      <div className="container section-shell">
         <div className="max-w-2xl mx-auto">
-          <div className="card">
+          <div className="card surface-panel">
             <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Upload Paychex PDFs</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-pm-brand hover:bg-pm-brandSoft transition"
               >
                 <input
                   type="file"
@@ -173,7 +168,7 @@ export default function UploadPage() {
                     <div key={i} className={`flex items-center justify-between rounded px-3 py-2 text-sm ${
                       r.status === 'success' ? 'bg-green-50 border border-green-200' :
                       r.status === 'error' ? 'bg-red-50 border border-red-200' :
-                      r.status === 'uploading' ? 'bg-blue-50 border border-blue-200' :
+                      r.status === 'uploading' ? 'bg-pm-brandSoft border border-[#efbac1]' :
                       'bg-gray-50 border border-gray-200'
                     }`}>
                       <span className="truncate flex-1 mr-2">
@@ -186,7 +181,7 @@ export default function UploadPage() {
                       <span className={`text-xs whitespace-nowrap ${
                         r.status === 'success' ? 'text-green-700' :
                         r.status === 'error' ? 'text-red-700' :
-                        r.status === 'uploading' ? 'text-blue-700' :
+                        r.status === 'uploading' ? 'text-pm-brandDark' :
                         'text-gray-500'
                       }`}>
                         {r.status === 'uploading' ? 'Processing...' :

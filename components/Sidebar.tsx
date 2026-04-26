@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BarChart3, Upload, Users, TrendingUp, Clock, Settings, LogOut, Menu, X } from 'lucide-react'
+import { BrandLogo } from './BrandLogo'
 
 const navigationItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -24,19 +25,11 @@ export function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="p-6 border-b border-slate-700/60 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-md bg-brand-cta flex items-center justify-center">
-            <span className="font-mono font-bold text-slate-900 text-sm">PM</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white leading-tight">Payroll</h1>
-            <p className="text-slate-400 text-xs font-mono uppercase tracking-wider">Dashboard</p>
-          </div>
-        </div>
+      <div className="p-6 border-b border-white/10 flex items-center justify-between">
+        <BrandLogo subtitle="Payroll Dashboard" compact />
         <button
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden text-slate-400 hover:text-white"
+          className="lg:hidden text-white/60 hover:text-white"
         >
           <X size={24} />
         </button>
@@ -52,10 +45,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-sm transition-colors duration-200 cursor-pointer ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-brand-primary text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-slate-700/80 hover:text-white'
+                    ? 'bg-pm-brand text-white shadow-brand'
+                    : 'text-white/75 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <Icon size={20} />
@@ -66,11 +59,11 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-slate-700/60">
+      <div className="p-4 border-t border-white/10">
         <Link
           href="/"
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-md text-sm text-slate-300 hover:bg-slate-700/80 hover:text-white transition-colors duration-200 w-full cursor-pointer"
+          className="flex items-center gap-3 px-4 py-3 rounded-lg text-white/75 hover:bg-white/10 hover:text-white transition-colors w-full"
         >
           <LogOut size={20} />
           <span>Logout</span>
@@ -84,7 +77,7 @@ export function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-slate-900 text-white p-2 rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 bg-pm-charcoal text-white p-2 rounded-lg shadow-lg"
       >
         <Menu size={24} />
       </button>
@@ -98,14 +91,14 @@ export function Sidebar() {
       )}
 
       {/* Mobile sidebar (slide in) */}
-      <div className={`lg:hidden fixed left-0 top-0 w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white min-h-screen z-50 shadow-xl transform transition-transform duration-300 ${
+      <div className={`lg:hidden fixed left-0 top-0 w-72 bg-gradient-to-b from-pm-charcoal to-pm-charcoalSoft text-white min-h-screen z-50 shadow-xl transform transition-transform duration-300 ${
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {sidebarContent}
       </div>
 
       {/* Desktop sidebar (always visible) */}
-      <div className="hidden lg:block w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white min-h-screen fixed left-0 top-0 shadow-xl">
+      <div className="hidden lg:block w-72 bg-gradient-to-b from-pm-charcoal to-pm-charcoalSoft text-white min-h-screen fixed left-0 top-0 shadow-xl">
         {sidebarContent}
       </div>
     </>

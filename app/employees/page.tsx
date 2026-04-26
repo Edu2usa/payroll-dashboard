@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AppTopbar } from '@/components/AppTopbar'
 
 type Employee = {
   id: string
@@ -53,18 +54,16 @@ export default function EmployeesPage() {
   }, [search])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/dashboard" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Dashboard</Link>
+    <div className="brand-page">
+      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
+
+      <div className="container section-shell">
+        <div className="page-title">
+          <h1>Employees</h1>
+          <p>Search and open payroll employee records with the updated Preferred Maintenance brand system.</p>
         </div>
-      </nav>
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Employees</h1>
-
-        <div className="card mb-6">
+        <div className="card surface-panel mb-6">
           <input
             type="text"
             placeholder="Search by name or ID..."
@@ -77,7 +76,7 @@ export default function EmployeesPage() {
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : (
-          <div className="card">
+          <div className="card surface-panel">
             {employees.length === 0 ? (
               <p className="text-center py-12 text-gray-500">No employees found</p>
             ) : (
@@ -101,7 +100,7 @@ export default function EmployeesPage() {
                         <td>Dept {emp.department}</td>
                         <td className="text-gray-600">-</td>
                         <td>{emp.last_seen}</td>
-                        <td><Link href={`/employees/${emp.id}`} className="text-blue-500 hover:underline">View</Link></td>
+                        <td><Link href={`/employees/${emp.id}`} className="emphasis-link">View</Link></td>
                       </tr>
                     ))}
                   </tbody>

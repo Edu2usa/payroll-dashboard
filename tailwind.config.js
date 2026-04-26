@@ -7,23 +7,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          primary: '#1E40AF',
-          'primary-hover': '#1E3A8A',
-          secondary: '#3B82F6',
-          cta: '#F59E0B',
-          'cta-hover': '#D97706',
-          bg: '#F8FAFC',
-          heading: '#1E3A8A',
+        pm: {
+          ink: '#1d2128',
+          surface: '#ffffff',
+          canvas: '#f6f4f5',
+          muted: '#565f6c',
+          line: '#d9d6d8',
+          brand: '#cc2434',
+          brandDark: '#a61a27',
+          brandSoft: '#fbe9eb',
+          brandGlow: '#f6d3d8',
+          charcoal: '#241920',
+          charcoalSoft: '#312126',
         },
       },
       fontFamily: {
-        sans: ['var(--font-fira-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-fira-code)', 'ui-monospace', 'monospace'],
-        heading: ['var(--font-fira-code)', 'ui-monospace', 'monospace'],
+        sans: ['"Source Sans 3"', '"Segoe UI"', 'sans-serif'],
+        display: ['Sora', '"Trebuchet MS"', 'sans-serif'],
       },
-      transitionDuration: {
-        DEFAULT: '200ms',
+      boxShadow: {
+        brand: '0 14px 30px rgba(29, 33, 40, 0.12)',
       },
     },
   },

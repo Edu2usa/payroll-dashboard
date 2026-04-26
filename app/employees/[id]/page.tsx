@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import Link from 'next/link'
+import { AppTopbar } from '@/components/AppTopbar'
 
 type Employee = {
   id: string
@@ -57,20 +57,15 @@ export default function EmployeeDetailPage() {
   }, [params.id])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container px-4 sm:px-6 flex items-center justify-between py-3 sm:py-4">
-          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold">Payroll Dashboard</Link>
-          <Link href="/employees" className="text-sm sm:text-base text-blue-500 hover:underline">Back to Employees</Link>
-        </div>
-      </nav>
+    <div className="brand-page">
+      <AppTopbar backHref="/employees" backLabel="Back to Employees" />
 
-      <div className="container px-4 sm:px-6 py-4 sm:py-8">
+      <div className="container section-shell">
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : employee ? (
           <>
-            <div className="card mb-6 sm:mb-8">
+            <div className="card surface-panel mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold mb-4">{employee.last_name}, {employee.first_name}{employee.middle_initial ? ' ' + employee.middle_initial : ''}</h1>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
@@ -92,7 +87,7 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
 
-            <div className="card">
+            <div className="card surface-panel">
               <h2 className="text-xl font-bold mb-4">Pay History</h2>
               {entries.length === 0 ? (
                 <p className="text-center py-8 text-gray-500">No payroll entries</p>
@@ -113,7 +108,7 @@ export default function EmployeeDetailPage() {
                         <tr key={e.id}>
                           <td>{e.payroll_periods.period_start} to {e.payroll_periods.period_end}</td>
                           <td>{e.total_hours.toFixed(2)}</td>
-                          <td className="text-blue-600">${e.total_earnings.toFixed(2)}</td>
+                          <td className="brand-money">${e.total_earnings.toFixed(2)}</td>
                           <td className="text-red-600">${e.total_withholdings.toFixed(2)}</td>
                           <td className="text-green-600 font-semibold">${e.net_pay.toFixed(2)}</td>
                         </tr>
