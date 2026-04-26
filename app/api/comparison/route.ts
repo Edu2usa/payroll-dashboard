@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseServer } from '@/lib/supabase'
 import { checkApiAuth } from '@/lib/auth'
+import { extractCompanyBreakdownFromText } from '@/lib/pdf-parser'
 
 function aggregateEntries(entries: any[]) {
   const agg = {
@@ -99,6 +100,25 @@ export async function GET(request: NextRequest) {
 
     const currentAgg = aggregateEntries(curEntries)
     const previousAgg = aggregateEntries(prevEntries)
+    const currentSummaryBreakdown = currentPeriodData?.raw_text
+      ? extractCompanyBreakdownFromText(currentPeriodData.raw_text)
+      : null
+    const previousSummaryBreakdown = previousPeriodData?.raw_text
+      ? extractCompanyBreakdownFromText(previousPeriodData.raw_text)
+      : null
+
+    const currentBreakdown = currentSummaryBreakdown
+      ? {
+          ...currentAgg,
+          ...currentSummaryBreakdown,
+        }
+      : currentAgg
+    const previousBreakdown = previousSummaryBreakdown
+      ? {
+          ...previousAgg,
+          ...previousSummaryBreakdown,
+        }
+      : previousAgg
 
     // Build employee diff: who's new, who's missing, who's in both
     const curEmpIds = new Set(curEntries.map((e: any) => e.employee_id))
@@ -161,11 +181,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       current: {
         ...currentPeriodData,
-        breakdown: currentAgg,
+        breakdown: currentBreakdown,
       },
       previous: {
         ...previousPeriodData,
-        breakdown: previousAgg,
+        breakdown: previousBreakdown,
       },
       employeeDiff: {
         currentCount: curEmpIds.size,

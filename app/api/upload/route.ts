@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
         total_employer_liability: parsed.totals.total_employer_liability,
         total_tax_liability: parsed.totals.total_tax_liability,
         total_net_pay: parsed.totals.total_net_pay,
+        raw_text: parsed.raw_text,
       }
 
       const { error: updateError } = await (supabaseServer
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
           total_employer_liability: parsed.totals.total_employer_liability,
           total_tax_liability: parsed.totals.total_tax_liability,
           total_net_pay: parsed.totals.total_net_pay,
-          raw_text: '',
+          raw_text: parsed.raw_text,
         })
         .select()
 
