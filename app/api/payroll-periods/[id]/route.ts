@@ -22,7 +22,9 @@ export async function GET(
       .eq('id', params.id)
       .single()
 
-    if (periodError || !period) {
+    const periodRecord = period as any
+
+    if (periodError || !periodRecord) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
@@ -35,7 +37,7 @@ export async function GET(
       return NextResponse.json({ error: entriesError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ...period, entries })
+    return NextResponse.json({ ...periodRecord, entries })
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
   }

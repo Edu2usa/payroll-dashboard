@@ -41,7 +41,6 @@ interface DashboardData {
     total_ot_earnings: number
     employees_with_ot: number
   }
-  discrepancyCount: number
   allPeriods: Array<{
     id: string
     period_start: string
@@ -51,6 +50,8 @@ interface DashboardData {
     total_net_pay: number
     total_persons: number
     total_hours: number
+    total_withholdings: number
+    total_deductions: number
   }>
 }
 
@@ -81,8 +82,8 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    const latestPeriod = allPeriodsData[0]
-    const previousPeriod = allPeriodsData[1]
+    const latestPeriod = (allPeriodsData[0] || null) as any
+    const previousPeriod = (allPeriodsData[1] || null) as any
 
     // Calculate period-over-period changes (guard against division by zero)
     function safePctChange(current: number, previous: number): number {
@@ -118,8 +119,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: deptError.message }, { status: 500 })
     }
 
-    const departmentBreakdown = departmentData ? Object.values(
-      departmentData.reduce((acc: any, entry: any) => {
+    const departmentRows = (departmentData || []) as any[]
+
+    const departmentBreakdown = departmentRows.length > 0 ? Object.values(
+      departmentRows.reduce((acc: any, entry: any) => {
         const dept = entry.department || 0
         if (!acc[dept]) {
           acc[dept] = { department: dept, earnings: 0, hours: 0, employees: 0 }
@@ -143,9 +146,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: earnerError.message }, { status: 500 })
     }
 
+    const topEarnersRows = (topEarnersData || []) as any[]
+
     let topEarners: any[] = []
-    if (topEarnersData && topEarnersData.length > 0) {
-      const employeeIds = topEarnersData.map(e => e.employee_id)
+    if (topEarnersRows.length > 0) {
+      const employeeIds = topEarnersRows.map((e: any) => e.employee_id)
       const { data: employeeNames, error: empError } = await supabaseServer
         .from('employees')
         .select('id, first_name, last_name')
@@ -155,11 +160,13 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching employee names:', empError)
       }
 
-      const nameMap = employeeNames ? Object.fromEntries(
-        employeeNames.map(e => [e.id, `${e.first_name} ${e.last_name}`])
+      const employeeNameRows = (employeeNames || []) as any[]
+
+      const nameMap = employeeNameRows.length > 0 ? Object.fromEntries(
+        employeeNameRows.map((e: any) => [e.id, `${e.first_name} ${e.last_name}`])
       ) : {}
 
-      topEarners = topEarnersData.map(entry => ({
+      topEarners = topEarnersRows.map((entry: any) => ({
         name: nameMap[entry.employee_id] || 'Unknown',
         department: entry.department || 0,
         hours: entry.total_hours,
@@ -179,23 +186,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: otError.message }, { status: 500 })
     }
 
+    const overtimeRows = (overtimeData || []) as any[]
+
     const overtimeSummary = {
-      total_ot_hours: overtimeData ? overtimeData.reduce((sum: number, e: any) => sum + (e.overtime_hours || 0), 0) : 0,
-      total_ot_earnings: overtimeData ? overtimeData.reduce((sum: number, e: any) => sum + (e.overtime_earnings || 0), 0) : 0,
-      employees_with_ot: overtimeData ? new Set(overtimeData.map(e => e.employee_id)).size : 0,
+      total_ot_hours: overtimeRows.reduce((sum: number, e: any) => sum + (e.overtime_hours || 0), 0),
+      total_ot_earnings: overtimeRows.reduce((sum: number, e: any) => sum + (e.overtime_earnings || 0), 0),
+      employees_with_ot: new Set(overtimeRows.map((e: any) => e.employee_id)).size,
     }
-
-    // Get discrepancy count
-    const { data: discrepancies, error: discError } = await supabaseServer
-      .from('discrepancies')
-      .select('id')
-      .eq('is_reviewed', false)
-
-    if (discError) {
-      return NextResponse.json({ error: discError.message }, { status: 500 })
-    }
-
-    const discrepancyCount = discrepancies ? discrepancies.length : 0
 
     const responseData: DashboardData = {
       latestPeriod: {
@@ -214,8 +211,7 @@ export async function GET(request: NextRequest) {
       departmentBreakdown: departmentBreakdown as any,
       topEarners,
       overtimeSummary,
-      discrepancyCount,
-      allPeriods: allPeriodsData,
+      allPeriods: allPeriodsData as any,
     }
 
     return NextResponse.json(responseData)

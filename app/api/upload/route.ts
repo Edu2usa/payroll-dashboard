@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
       .eq('period_end', parsed.period_end)
       .limit(1)
 
+    const existingPeriodRows = (existingPeriod || []) as Array<{ id: string }>
+
     let payrollPeriodId: string
 
-    if (existingPeriod && existingPeriod.length > 0) {
+    if (existingPeriodRows.length > 0) {
       // Period already exists — delete old data and replace
-      payrollPeriodId = existingPeriod[0].id
+      payrollPeriodId = existingPeriodRows[0].id
       console.log(`Replacing existing period ${payrollPeriodId} (${parsed.period_start} - ${parsed.period_end})`)
 
       // Delete old discrepancies, entries for this period
@@ -42,20 +44,24 @@ export async function POST(request: NextRequest) {
       await supabaseServer.from('payroll_entries').delete().eq('payroll_period_id', payrollPeriodId)
 
       // Update the period record with new totals
-      const { error: updateError } = await supabaseServer
-        .from('payroll_periods')
+      const periodUpdatePayload: any = {
+        check_date: parsed.check_date,
+        run_date: parsed.run_date,
+        total_persons: parsed.totals.total_persons,
+        total_transactions: parsed.totals.total_transactions,
+        total_hours: parsed.totals.total_hours,
+        total_earnings: parsed.totals.total_earnings,
+        total_withholdings: parsed.totals.total_withholdings,
+        total_deductions: parsed.totals.total_deductions,
+        total_employer_liability: parsed.totals.total_employer_liability,
+        total_tax_liability: parsed.totals.total_tax_liability,
+        total_net_pay: parsed.totals.total_net_pay,
+      }
+
+      const { error: updateError } = await (supabaseServer
+        .from('payroll_periods') as any)
         .update({
-          check_date: parsed.check_date,
-          run_date: parsed.run_date,
-          total_persons: parsed.totals.total_persons,
-          total_transactions: parsed.totals.total_transactions,
-          total_hours: parsed.totals.total_hours,
-          total_earnings: parsed.totals.total_earnings,
-          total_withholdings: parsed.totals.total_withholdings,
-          total_deductions: parsed.totals.total_deductions,
-          total_employer_liability: parsed.totals.total_employer_liability,
-          total_tax_liability: parsed.totals.total_tax_liability,
-          total_net_pay: parsed.totals.total_net_pay,
+          ...periodUpdatePayload,
         })
         .eq('id', payrollPeriodId)
 
@@ -68,8 +74,8 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new payroll period
-      const { data: period, error: periodError } = await supabaseServer
-        .from('payroll_periods')
+      const { data: period, error: periodError } = await (supabaseServer
+        .from('payroll_periods') as any)
         .insert({
           period_start: parsed.period_start,
           period_end: parsed.period_end,
@@ -97,14 +103,14 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      payrollPeriodId = period[0].id
+      payrollPeriodId = (period as Array<{ id: string }>)[0].id
     }
 
     // Upsert employees
     let upsertErrorCount = 0
     for (const emp of parsed.employees) {
-      const { error: empError } = await supabaseServer
-        .from('employees')
+      const { error: empError } = await (supabaseServer
+        .from('employees') as any)
         .upsert({
           employee_id: emp.employee_id,
           last_name: emp.last_name,
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
           is_active: true,
           first_seen: emp.first_seen,
           last_seen: emp.last_seen,
-        }, { onConflict: 'employee_id' })
+        } as any, { onConflict: 'employee_id' })
 
       if (empError) {
         upsertErrorCount++
@@ -137,7 +143,8 @@ export async function POST(request: NextRequest) {
       .from('employees')
       .select('id, employee_id')
 
-    const empMap = new Map(employees?.map(e => [e.employee_id, e.id]) || [])
+    const employeeRows = (employees || []) as Array<{ id: string; employee_id: number }>
+    const empMap = new Map<any, string>(employeeRows.map((e) => [e.employee_id, e.id]))
 
     // Create payroll entries
     const entries = parsed.employees.map(emp => ({
@@ -177,8 +184,8 @@ export async function POST(request: NextRequest) {
       check_number: emp.payroll_entry.check_number,
     }))
 
-    const { error: entriesError } = await supabaseServer
-      .from('payroll_entries')
+    const { error: entriesError } = await (supabaseServer
+      .from('payroll_entries') as any)
       .insert(entries)
 
     if (entriesError) {
@@ -216,8 +223,8 @@ export async function POST(request: NextRequest) {
         is_reviewed: false,
       }))
 
-      const { error: discrepanciesError } = await supabaseServer
-        .from('discrepancies')
+      const { error: discrepanciesError } = await (supabaseServer
+        .from('discrepancies') as any)
         .insert(discrepancyRecords)
 
       if (discrepanciesError) {

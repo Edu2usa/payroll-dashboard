@@ -1,11 +1,49 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+let browserClient: ReturnType<typeof createClient> | null = null
+let serverClient: ReturnType<typeof createClient> | null = null
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-export const supabaseServer = createClient(supabaseUrl, supabaseServiceKey)
+function requireEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`${name} is required.`)
+  }
+  return value
+}
+
+function getBrowserClient() {
+  if (!browserClient) {
+    browserClient = createClient(
+      requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    )
+  }
+
+  return browserClient
+}
+
+function getServerClient() {
+  if (!serverClient) {
+    serverClient = createClient(
+      requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY')
+    )
+  }
+
+  return serverClient
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getBrowserClient() as object, prop, receiver)
+  },
+})
+
+export const supabaseServer = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getServerClient() as object, prop, receiver)
+  },
+})
 
 export type PayrollPeriod = {
   id: string

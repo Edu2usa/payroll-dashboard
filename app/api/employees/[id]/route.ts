@@ -22,7 +22,9 @@ export async function GET(
       .eq('id', params.id)
       .single()
 
-    if (empError || !employee) {
+    const employeeRecord = employee as any
+
+    if (empError || !employeeRecord) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
@@ -37,7 +39,7 @@ export async function GET(
       return NextResponse.json({ error: entriesError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ...employee, entries })
+    return NextResponse.json({ ...employeeRecord, entries })
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
   }

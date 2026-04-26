@@ -19,6 +19,7 @@ export async function detectDiscrepancies(
   newEntries: PayrollEntry[]
 ): Promise<DetectedDiscrepancy[]> {
   const discrepancies: DetectedDiscrepancy[] = []
+  const typedNewEntries = newEntries as any[]
 
   // Get current payroll period
   const { data: currentPeriod } = await supabaseServer
@@ -37,7 +38,7 @@ export async function detectDiscrepancies(
     .order('period_end', { ascending: false })
     .limit(1)
 
-  const previousPeriod = previousPeriods?.[0]
+  const previousPeriod = (previousPeriods?.[0] || null) as any
 
   if (!previousPeriod) {
     // First payroll, check for new employees
@@ -64,8 +65,10 @@ export async function detectDiscrepancies(
     .select('*')
     .eq('payroll_period_id', previousPeriod.id)
 
-  const prevMap = new Map(prevEntries?.map(e => [e.employee_id, e]) || [])
-  const newMap = new Map(newEntries.map(e => [e.employee_id, e]))
+  const previousEntryRows = (prevEntries || []) as any[]
+
+  const prevMap = new Map(previousEntryRows.map((e: any) => [e.employee_id, e]))
+  const newMap = new Map(typedNewEntries.map((e: any) => [e.employee_id, e]))
 
   // Check all new entries
   for (const [empId, newEntry] of newMap) {

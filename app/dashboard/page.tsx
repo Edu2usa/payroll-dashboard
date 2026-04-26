@@ -47,7 +47,6 @@ interface DashboardData {
     total_ot_earnings: number
     employees_with_ot: number
   }
-  discrepancyCount: number
   allPeriods: Array<{
     id: string
     period_start: string
@@ -422,7 +421,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Row 4: Top Earners & Recent Activity */}
+          {/* Row 4: Top Earners & Recent Payroll Totals */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
             <div className="lg:col-span-2 surface-panel bg-white rounded-lg p-4 sm:p-6 overflow-x-auto">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Top 10 Earners</h2>
@@ -461,19 +460,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="surface-panel bg-white rounded-lg p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Recent Activity</h2>
-
-              {data.discrepancyCount > 0 && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-                    <div>
-                      <p className="font-semibold text-red-900">Unreviewed Discrepancies</p>
-                      <p className="text-red-700 text-sm mt-1">{data.discrepancyCount} items need review</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Recent Payroll Totals</h2>
 
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700 mb-4">Recent Periods</p>
@@ -489,9 +476,31 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-600 mb-2">
                       {period.period_start} to {period.period_end}
                     </p>
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-600">{period.total_persons} employees</span>
-                      <span className="font-semibold text-pm-brand">{formatCurrency(period.total_earnings)}</span>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Gross</p>
+                        <p className="font-semibold text-pm-brand">{formatCurrency(period.total_earnings)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Net</p>
+                        <p className="font-semibold text-green-700">{formatCurrency(period.total_net_pay)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Hours</p>
+                        <p className="font-semibold text-gray-900">{formatNumber(period.total_hours)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Employees</p>
+                        <p className="font-semibold text-gray-900">{period.total_persons}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Withholdings</p>
+                        <p className="font-semibold text-gray-900">{formatCurrency(period.total_withholdings)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 uppercase tracking-wide">Deductions</p>
+                        <p className="font-semibold text-gray-900">{formatCurrency(period.total_deductions)}</p>
+                      </div>
                     </div>
                   </div>
                 ))}

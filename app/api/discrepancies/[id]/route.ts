@@ -15,13 +15,14 @@ export async function PATCH(
     }
 
     const { is_reviewed } = await request.json()
+    const updatePayload: any = {
+      is_reviewed,
+      reviewed_at: is_reviewed ? new Date().toISOString() : null,
+    }
 
-    const { data, error } = await supabaseServer
-      .from('discrepancies')
-      .update({
-        is_reviewed,
-        reviewed_at: is_reviewed ? new Date().toISOString() : null,
-      })
+    const { data, error } = await (supabaseServer
+      .from('discrepancies') as any)
+      .update(updatePayload)
       .eq('id', params.id)
       .select()
 

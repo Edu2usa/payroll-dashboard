@@ -87,7 +87,10 @@ export async function GET(request: NextRequest) {
       supabaseServer.from('payroll_entries').select('*').eq('payroll_period_id', previousId),
     ])
 
-    if (!curPeriodRes.data || !prevPeriodRes.data) {
+    const currentPeriodData = (curPeriodRes as any)?.data
+    const previousPeriodData = (prevPeriodRes as any)?.data
+
+    if (!currentPeriodData || !previousPeriodData) {
       return NextResponse.json({ error: 'Period not found' }, { status: 404 })
     }
 
@@ -110,7 +113,14 @@ export async function GET(request: NextRequest) {
       .in('id', Array.from(allEmpIds))
 
     const nameMap: Record<string, { name: string; department: number }> = {}
-    for (const emp of empNames || []) {
+    const employeeRows = (empNames || []) as Array<{
+      id: string
+      first_name: string
+      last_name: string
+      department: number
+    }>
+
+    for (const emp of employeeRows) {
       nameMap[emp.id] = { name: `${emp.last_name}, ${emp.first_name}`, department: emp.department }
     }
 
@@ -150,11 +160,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       current: {
-        ...curPeriodRes.data,
+        ...currentPeriodData,
         breakdown: currentAgg,
       },
       previous: {
-        ...prevPeriodRes.data,
+        ...previousPeriodData,
         breakdown: previousAgg,
       },
       employeeDiff: {
