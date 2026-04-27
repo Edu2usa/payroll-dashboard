@@ -69,6 +69,21 @@ interface SummaryCard {
   icon?: React.ReactNode
 }
 
+function useIsCompactMobile() {
+  const [isCompactMobile, setIsCompactMobile] = useState(false)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 640px)')
+    const sync = () => setIsCompactMobile(mediaQuery.matches)
+
+    sync()
+    mediaQuery.addEventListener('change', sync)
+    return () => mediaQuery.removeEventListener('change', sync)
+  }, [])
+
+  return isCompactMobile
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -100,9 +115,9 @@ function ChangeIndicator({ change }: { change: number }) {
 
 function SummaryCardComponent({ label, value, change, color }: SummaryCard) {
   return (
-    <div className="surface-panel bg-white rounded-lg p-3 sm:p-6 border-l-4" style={{ borderColor: color }}>
+    <div className="surface-panel bg-white rounded-2xl p-4 sm:p-6 border-l-4 min-h-[132px] sm:min-h-[154px]" style={{ borderColor: color }}>
       <p className="text-gray-600 text-xs sm:text-sm font-medium mb-1 sm:mb-2">{label}</p>
-      <p className="text-lg sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-3 truncate">{value}</p>
+      <p className="text-xl sm:text-3xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight break-words">{value}</p>
       <ChangeIndicator change={change} />
     </div>
   )
@@ -110,6 +125,7 @@ function SummaryCardComponent({ label, value, change, color }: SummaryCard) {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const isCompactMobile = useIsCompactMobile()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -180,7 +196,7 @@ export default function DashboardPage() {
     return (
       <div className="flex">
         <Sidebar />
-        <div className="flex-1 lg:ml-72 p-4 sm:p-8 pt-16 lg:pt-8">
+        <div className="flex-1 lg:ml-72 p-4 sm:p-8 pt-20 sm:pt-24 lg:pt-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex items-start gap-4">
             <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={24} />
             <div>
@@ -245,17 +261,17 @@ export default function DashboardPage() {
       <Sidebar />
 
       <div className="flex-1 lg:ml-72">
-        <div className="p-4 sm:p-8 pt-16 lg:pt-8">
+        <div className="p-3 sm:p-8 pt-20 sm:pt-24 lg:pt-8">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8 pr-12 sm:pr-0">
             <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600 break-words">
               Period: {data.latestPeriod.period_start} to {data.latestPeriod.period_end}
             </p>
           </div>
 
           {/* Row 1: Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8">
             {summaryCards.map((card, idx) => (
               <SummaryCardComponent key={idx} {...card} />
             ))}
@@ -263,11 +279,14 @@ export default function DashboardPage() {
 
           {/* Row 2: Payroll Trend & Department Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 mb-8">
-            <div className="lg:col-span-2 surface-panel bg-white rounded-lg p-4 sm:p-6">
+            <div className="lg:col-span-2 surface-panel bg-white rounded-2xl p-4 sm:p-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Payroll Trend</h2>
               {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={isCompactMobile ? 240 : 300}>
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 5, right: isCompactMobile ? 8 : 30, left: isCompactMobile ? -18 : 0, bottom: isCompactMobile ? 0 : 5 }}
+                  >
                     <defs>
                       <linearGradient id="colorGross" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#CC2434" stopOpacity={0.8} />
@@ -279,8 +298,8 @@ export default function DashboardPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="date" stroke="#6B7280" />
-                    <YAxis stroke="#6B7280" />
+                    <XAxis dataKey="date" stroke="#6B7280" tick={{ fontSize: isCompactMobile ? 11 : 12 }} />
+                    <YAxis stroke="#6B7280" tick={{ fontSize: isCompactMobile ? 11 : 12 }} width={isCompactMobile ? 52 : 60} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#1F2937',
@@ -290,7 +309,7 @@ export default function DashboardPage() {
                       }}
                       formatter={(value) => formatCurrency(Number(value))}
                     />
-                    <Legend />
+                    {!isCompactMobile && <Legend />}
                     <Area
                       type="monotone"
                       dataKey="gross"
@@ -314,33 +333,56 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6">
+            <div className="surface-panel bg-white rounded-2xl p-4 sm:p-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Department Breakdown</h2>
               {data.departmentBreakdown.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.departmentBreakdown}
-                      dataKey="earnings"
-                      nameKey="department"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={false}
-                    >
-                      {data.departmentBreakdown.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={departmentColors[index % departmentColors.length]} />
+                <>
+                  <ResponsiveContainer width="100%" height={isCompactMobile ? 220 : 300}>
+                    <PieChart>
+                      <Pie
+                        data={data.departmentBreakdown}
+                        dataKey="earnings"
+                        nameKey="department"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={isCompactMobile ? 78 : 100}
+                        label={false}
+                      >
+                        {data.departmentBreakdown.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={departmentColors[index % departmentColors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      {!isCompactMobile && (
+                        <Legend
+                          formatter={(value) => {
+                            const item = data.departmentBreakdown.find(d => d.department === Number(value))
+                            return `Dept ${value}: ${item ? formatCurrency(item.earnings) : ''}`
+                          }}
+                        />
+                      )}
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {isCompactMobile && (
+                    <div className="mt-4 space-y-2">
+                      {data.departmentBreakdown.map((department, index) => (
+                        <div key={department.department} className="flex items-start justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="mt-1 h-3 w-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: departmentColors[index % departmentColors.length] }}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900">Dept {department.department}</p>
+                              <p className="text-xs text-gray-600">{formatNumber(department.hours)} hrs • {department.employees} employees</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold text-pm-brand text-right">{formatCurrency(department.earnings)}</p>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Legend
-                      formatter={(value, entry: any) => {
-                        const item = data.departmentBreakdown.find(d => d.department === Number(value))
-                        return `Dept ${value}: ${item ? formatCurrency(item.earnings) : ''}`
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8 text-gray-500">No data available</div>
               )}
@@ -349,24 +391,24 @@ export default function DashboardPage() {
 
           {/* Row 3: Overtime & Withholdings */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-8">
-            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6">
+            <div className="surface-panel bg-white rounded-2xl p-4 sm:p-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Overtime Analysis</h2>
-              <div className="mb-6 grid grid-cols-3 gap-4">
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">OT Hours</p>
-                  <p className="text-2xl font-bold text-pm-brand">
+                  <p className="text-xl sm:text-2xl font-bold text-pm-brand break-words">
                     {formatNumber(data.overtimeSummary.total_ot_hours)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">OT Earnings</p>
-                  <p className="text-2xl font-bold text-pm-brand">
+                  <p className="text-xl sm:text-2xl font-bold text-pm-brand break-words">
                     {formatCurrency(data.overtimeSummary.total_ot_earnings)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Employees</p>
-                  <p className="text-2xl font-bold text-pm-brand">
+                  <p className="text-xl sm:text-2xl font-bold text-pm-brand break-words">
                     {data.overtimeSummary.employees_with_ot}
                   </p>
                 </div>
@@ -393,14 +435,17 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6">
+            <div className="surface-panel bg-white rounded-2xl p-4 sm:p-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Withholdings vs Deductions</h2>
               {withholdingsChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={withholdingsChartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={isCompactMobile ? 240 : 280}>
+                  <BarChart
+                    data={withholdingsChartData}
+                    margin={{ top: 5, right: isCompactMobile ? 8 : 30, left: isCompactMobile ? -18 : 0, bottom: isCompactMobile ? 0 : 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis dataKey="date" stroke="#6B7280" />
-                    <YAxis stroke="#6B7280" />
+                    <XAxis dataKey="date" stroke="#6B7280" tick={{ fontSize: isCompactMobile ? 11 : 12 }} />
+                    <YAxis stroke="#6B7280" tick={{ fontSize: isCompactMobile ? 11 : 12 }} width={isCompactMobile ? 52 : 60} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#1F2937',
@@ -410,7 +455,7 @@ export default function DashboardPage() {
                       }}
                       formatter={(value) => formatCurrency(Number(value))}
                     />
-                    <Legend />
+                    {!isCompactMobile && <Legend />}
                     <Bar dataKey="withholdings" fill="#A61A27" name="Withholdings" stackId="a" />
                     <Bar dataKey="deductions" fill="#6C2F38" name="Deductions" stackId="a" />
                   </BarChart>
@@ -423,49 +468,79 @@ export default function DashboardPage() {
 
           {/* Row 4: Top Earners & Recent Payroll Totals */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
-            <div className="lg:col-span-2 surface-panel bg-white rounded-lg p-4 sm:p-6 overflow-x-auto">
+            <div className="lg:col-span-2 surface-panel bg-white rounded-2xl p-4 sm:p-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Top 10 Earners</h2>
               {data.topEarners.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Department</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Hours</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Earnings</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Pay</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.topEarners.map((earner, idx) => (
-                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 text-sm text-gray-900">{earner.name}</td>
-                          <td className="py-3 px-4 text-sm text-gray-600">Department {earner.department || 'N/A'}</td>
-                          <td className="py-3 px-4 text-sm text-gray-600 text-right">{formatNumber(earner.hours)}</td>
-                          <td className="py-3 px-4 text-sm font-semibold text-pm-brand text-right">
-                            {formatCurrency(earner.earnings)}
-                          </td>
-                          <td className="py-3 px-4 text-sm font-semibold text-green-600 text-right">
-                            {formatCurrency(earner.net_pay)}
-                          </td>
+                isCompactMobile ? (
+                  <div className="space-y-3">
+                    {data.topEarners.map((earner, idx) => (
+                      <div key={idx} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{earner.name}</p>
+                            <p className="text-xs text-gray-600">Department {earner.department || 'N/A'}</p>
+                          </div>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm">#{idx + 1}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500">Hours</p>
+                            <p className="font-semibold text-gray-900">{formatNumber(earner.hours)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500">Earnings</p>
+                            <p className="font-semibold text-pm-brand">{formatCurrency(earner.earnings)}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-[11px] uppercase tracking-wide text-gray-500">Net Pay</p>
+                            <p className="font-semibold text-green-700">{formatCurrency(earner.net_pay)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Department</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Hours</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Earnings</th>
+                          <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Net Pay</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {data.topEarners.map((earner, idx) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm text-gray-900">{earner.name}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">Department {earner.department || 'N/A'}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600 text-right">{formatNumber(earner.hours)}</td>
+                            <td className="py-3 px-4 text-sm font-semibold text-pm-brand text-right">
+                              {formatCurrency(earner.earnings)}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-semibold text-green-600 text-right">
+                              {formatCurrency(earner.net_pay)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8 text-gray-500">No earner data available</div>
               )}
             </div>
 
-            <div className="surface-panel bg-white rounded-lg p-4 sm:p-6">
+            <div className="surface-panel bg-white rounded-2xl p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Recent Payroll Totals</h2>
 
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700 mb-4">Recent Periods</p>
                 {recentPeriods.map((period, idx) => (
-                  <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div key={idx} className="p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200">
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       {new Date(period.check_date).toLocaleDateString('en-US', {
                         month: 'short',

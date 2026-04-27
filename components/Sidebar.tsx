@@ -77,7 +77,8 @@ export function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-pm-charcoal text-white p-2 rounded-lg shadow-lg"
+        className="lg:hidden fixed top-3 left-3 z-50 bg-pm-charcoal text-white p-2.5 rounded-xl shadow-lg border border-white/10"
+        aria-label="Open navigation"
       >
         <Menu size={24} />
       </button>
