@@ -137,17 +137,29 @@ function ComparisonContent() {
     return { diff, pct }
   }
 
+  const formatChange = (value: number, formatter: (n: number) => string) => {
+    return `${value >= 0 && value !== 0 ? '+' : ''}${formatter(value)}`
+  }
+
+  const pctChange = (change: { diff: number; pct: number }, prev: number) => {
+    if (!prev) return '—'
+    return `${change.diff >= 0 && change.diff !== 0 ? '+' : ''}${change.pct.toFixed(1)}%`
+  }
+
+  const changeColor = (diff: number) => {
+    return diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-green-600' : 'text-red-600'
+  }
+
   const ChangeCell = ({ cur, prev, isCurrency }: { cur: number; prev: number; isCurrency: boolean }) => {
     const { diff, pct } = calcChange(cur, prev)
-    const isPos = diff >= 0
-    const color = diff === 0 ? 'text-gray-500' : isPos ? 'text-green-600' : 'text-red-600'
+    const color = changeColor(diff)
     return (
       <>
         <td className={`py-2 px-3 text-right font-medium ${color}`}>
-          {isPos && diff !== 0 ? '+' : ''}{isCurrency ? fmt(diff) : fmtNum(diff)}
+          {formatChange(diff, isCurrency ? fmt : fmtNum)}
         </td>
         <td className={`py-2 px-3 text-right font-medium ${color}`}>
-          {prev ? `${isPos && diff !== 0 ? '+' : ''}${pct.toFixed(1)}%` : '—'}
+          {pctChange({ diff, pct }, prev)}
         </td>
       </>
     )
@@ -311,10 +323,12 @@ function ComparisonContent() {
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Category</th>
                     <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current Hours</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Prev Hours</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Hours Diff</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Hours %</th>
                     <th className="text-right py-2 px-3 font-semibold text-pm-brand">Current Earnings</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-500">Prev Earnings</th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Diff</th>
-                    <th className="text-right py-2 px-3 font-semibold text-gray-700">%</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Earnings Diff</th>
+                    <th className="text-right py-2 px-3 font-semibold text-gray-700">Earnings %</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -324,20 +338,28 @@ function ComparisonContent() {
                     { label: 'Double Time', curH: current.breakdown.double_time_hours, prevH: previous.breakdown.double_time_hours, curE: current.breakdown.double_time_earnings, prevE: previous.breakdown.double_time_earnings },
                     { label: 'Vacation', curH: current.breakdown.vacation_hours, prevH: previous.breakdown.vacation_hours, curE: current.breakdown.vacation_earnings, prevE: previous.breakdown.vacation_earnings },
                   ].map((row) => {
+                    const hoursDiff = calcChange(row.curH, row.prevH)
                     const earningsDiff = calcChange(row.curE, row.prevE)
-                    const diffColor = earningsDiff.diff === 0 ? 'text-gray-500' : earningsDiff.diff > 0 ? 'text-green-600' : 'text-red-600'
+                    const hoursColor = changeColor(hoursDiff.diff)
+                    const earningsColor = changeColor(earningsDiff.diff)
                     return (
                       <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-2 px-3 font-medium text-gray-900">{row.label}</td>
                         <td className="py-2 px-3 text-right">{fmtNum(row.curH)}</td>
                         <td className="py-2 px-3 text-right text-gray-500">{fmtNum(row.prevH)}</td>
+                        <td className={`py-2 px-3 text-right font-medium ${hoursColor}`}>
+                          {formatChange(hoursDiff.diff, fmtNum)}
+                        </td>
+                        <td className={`py-2 px-3 text-right font-medium ${hoursColor}`}>
+                          {pctChange(hoursDiff, row.prevH)}
+                        </td>
                         <td className="py-2 px-3 text-right">{fmt(row.curE)}</td>
                         <td className="py-2 px-3 text-right text-gray-500">{fmt(row.prevE)}</td>
-                        <td className={`py-2 px-3 text-right font-medium ${diffColor}`}>
-                          {earningsDiff.diff >= 0 && earningsDiff.diff !== 0 ? '+' : ''}{fmt(earningsDiff.diff)}
+                        <td className={`py-2 px-3 text-right font-medium ${earningsColor}`}>
+                          {formatChange(earningsDiff.diff, fmt)}
                         </td>
-                        <td className={`py-2 px-3 text-right font-medium ${diffColor}`}>
-                          {row.prevE ? `${earningsDiff.pct >= 0 && earningsDiff.diff !== 0 ? '+' : ''}${earningsDiff.pct.toFixed(1)}%` : '—'}
+                        <td className={`py-2 px-3 text-right font-medium ${earningsColor}`}>
+                          {pctChange(earningsDiff, row.prevE)}
                         </td>
                       </tr>
                     )
@@ -346,15 +368,25 @@ function ComparisonContent() {
                     <td className="py-2 px-3 text-gray-900">TOTAL</td>
                     <td className="py-2 px-3 text-right">{fmtNum(current.breakdown.total_hours)}</td>
                     <td className="py-2 px-3 text-right text-gray-500">{fmtNum(previous.breakdown.total_hours)}</td>
+                    {(() => {
+                      const d = calcChange(current.breakdown.total_hours, previous.breakdown.total_hours)
+                      const c = changeColor(d.diff)
+                      return (
+                        <>
+                          <td className={`py-2 px-3 text-right ${c}`}>{formatChange(d.diff, fmtNum)}</td>
+                          <td className={`py-2 px-3 text-right ${c}`}>{pctChange(d, previous.breakdown.total_hours)}</td>
+                        </>
+                      )
+                    })()}
                     <td className="py-2 px-3 text-right">{fmt(current.breakdown.total_earnings)}</td>
                     <td className="py-2 px-3 text-right text-gray-500">{fmt(previous.breakdown.total_earnings)}</td>
                     {(() => {
                       const d = calcChange(current.breakdown.total_earnings, previous.breakdown.total_earnings)
-                      const c = d.diff === 0 ? 'text-gray-500' : d.diff > 0 ? 'text-green-600' : 'text-red-600'
+                      const c = changeColor(d.diff)
                       return (
                         <>
-                          <td className={`py-2 px-3 text-right ${c}`}>{d.diff >= 0 ? '+' : ''}{fmt(d.diff)}</td>
-                          <td className={`py-2 px-3 text-right ${c}`}>{d.pct >= 0 ? '+' : ''}{d.pct.toFixed(1)}%</td>
+                          <td className={`py-2 px-3 text-right ${c}`}>{formatChange(d.diff, fmt)}</td>
+                          <td className={`py-2 px-3 text-right ${c}`}>{pctChange(d, previous.breakdown.total_earnings)}</td>
                         </>
                       )
                     })()}
