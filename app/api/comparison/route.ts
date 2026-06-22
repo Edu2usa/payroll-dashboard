@@ -62,6 +62,34 @@ function aggregateEntries(entries: any[]) {
   return agg
 }
 
+function mergeSupplementalSummary(aggregate: ReturnType<typeof aggregateEntries>, summary: Partial<ReturnType<typeof aggregateEntries>> | null) {
+  if (!summary) return aggregate
+
+  const next = { ...aggregate }
+  const supplementalFields = [
+    'social_security',
+    'medicare',
+    'fed_income_tax',
+    'ct_income_tax',
+    'ct_pfl',
+    'health_deduction',
+    'simple_ira',
+    'hsa',
+    'loan_repayment',
+    'other_deduction',
+  ] as const
+
+  for (const field of supplementalFields) {
+    const value = summary[field]
+    if (Number.isFinite(value)) next[field] = value || 0
+  }
+
+  next.total_withholdings = next.social_security + next.medicare + next.fed_income_tax + next.ct_income_tax + next.ct_pfl
+  next.total_deductions = next.health_deduction + next.simple_ira + next.hsa + next.loan_repayment + next.other_deduction
+
+  return next
+}
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies()
@@ -107,18 +135,8 @@ export async function GET(request: NextRequest) {
       ? extractCompanyBreakdownFromText(previousPeriodData.raw_text)
       : null
 
-    const currentBreakdown = currentSummaryBreakdown
-      ? {
-          ...currentAgg,
-          ...currentSummaryBreakdown,
-        }
-      : currentAgg
-    const previousBreakdown = previousSummaryBreakdown
-      ? {
-          ...previousAgg,
-          ...previousSummaryBreakdown,
-        }
-      : previousAgg
+    const currentBreakdown = mergeSupplementalSummary(currentAgg, currentSummaryBreakdown)
+    const previousBreakdown = mergeSupplementalSummary(previousAgg, previousSummaryBreakdown)
 
     // Build employee diff: who's new, who's missing, who's in both
     const curEmpIds = new Set(curEntries.map((e: any) => e.employee_id))
