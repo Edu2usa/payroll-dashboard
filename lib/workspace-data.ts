@@ -7,6 +7,7 @@ import {
 } from './supabase'
 import { aggregate, previousPeriod } from './payroll-domain'
 import { buildAlerts } from './payroll-alerts'
+import { payrollSignals } from './payroll-signals'
 import { extractCompanyBreakdownFromText } from './pdf-parser'
 
 export async function readAll(table: string, select = '*') {
@@ -66,6 +67,10 @@ export async function getWorkspace(attempt = 0): Promise<any> {
       entry,
     ])
   const latestReview = new Map<string, any>()
+  const signalPeriods = periods.map((p) => ({
+    ...p,
+    breakdown: aggregate(byPeriod.get(p.id) || []),
+  }))
   events.sort(
     (a, b) =>
       b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id),
@@ -142,11 +147,18 @@ export async function getWorkspace(attempt = 0): Promise<any> {
         previousPeriod(p, periods)?.active_version_id,
       ])
       const periodReview = latestReview.get(reviewId)
+      const signals = payrollSignals({ ...p, breakdown: totals }, signalPeriods)
       return {
         ...p,
         breakdown: totals,
         reconciliation: { matches: issues.length === 0, issues },
         open_alerts: openAlerts.length,
+        signals,
+        discrepancy_count:
+          signals.length +
+          alerts.filter(
+            (a) => a.current_period_id === p.id && a.severity !== 'info',
+          ).length,
         reviewed: periodReview?.is_reviewed || false,
         reviewed_by: periodReview?.actor || null,
         reviewed_at: periodReview?.created_at || null,

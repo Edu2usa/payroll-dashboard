@@ -384,6 +384,49 @@
 .pw-review-form label {
   margin-bottom: 12px;
 }
+.pw-signal {
+  padding: 20px;
+  border: 1px solid #edcbd6;
+  border-left: 4px solid #c0265b;
+  border-radius: 10px;
+  background: #fffafd;
+  margin-bottom: 14px;
+}
+.pw-signal:last-child {
+  margin-bottom: 0;
+}
+.pw-signal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.pw-signal-values {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+.pw-signal-values strong {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  color: #8f2045;
+}
+@media (max-width: 1200px) {
+  .pw-signal-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .pw-signal {
+    padding: 14px;
+  }
+  .pw-signal-values strong {
+    font-size: 21px;
+  }
+}
 .pw-skip {
   position: fixed;
   top: -80px;

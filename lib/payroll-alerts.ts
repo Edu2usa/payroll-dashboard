@@ -13,7 +13,7 @@ export interface PayrollAlert {
   difference: number | null
   percent_change: number | null
 }
-// Reported earnings reconcile salary and multiple earning lines. A flag requests review, not correction.
+// Reported earnings reconcile salary and multiple earning lines. A flag highlights a change, not a confirmed error.
 export function buildAlerts(
   current: Pick<PayrollPeriod, 'id'>,
   previous: Pick<PayrollPeriod, 'id'> | null,
@@ -162,7 +162,7 @@ export function buildAlerts(
         e,
         'missing_employee',
         'employee',
-        'high',
+        'info',
         'Absent from this payroll but present in the preceding payroll. Check whether this is expected.',
         e.total_earnings,
         0,

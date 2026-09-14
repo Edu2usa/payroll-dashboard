@@ -13,6 +13,7 @@ import { Sidebar } from './Sidebar'
 import { dateOnly, dateTime, periodLabel, csvText } from '@/lib/payroll-domain'
 import type { PayrollEntry, PayrollPeriod, Employee } from '@/lib/supabase'
 import type { PayrollAlert } from '@/lib/payroll-alerts'
+import type { PayrollSignal } from '@/lib/payroll-signals'
 import './payroll-workspace.css'
 
 export type Period = PayrollPeriod & {
@@ -20,6 +21,8 @@ export type Period = PayrollPeriod & {
   breakdown: Record<string, number>
   reconciliation: { matches: boolean; issues: string[] }
   open_alerts: number
+  discrepancy_count: number
+  signals: PayrollSignal[]
   reviewed: boolean
   reviewed_by: string | null
   reviewed_at: string | null
@@ -205,7 +208,7 @@ function Provider({ children }: { children: React.ReactNode }) {
           )}
         </main>
         <footer className="pw-footer">
-          Preferred Maintenance · Payroll review workspace
+          Preferred Maintenance · Payroll insights
         </footer>
       </div>
     </div>

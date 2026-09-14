@@ -6,7 +6,7 @@ import {
   Panel,
   downloadCSV,
 } from '@/components/PayrollWorkspace'
-import { ReviewList } from '@/components/PayrollPanels'
+import { DiscrepancyList } from '@/components/PayrollPanels'
 import { money, number, dateOnly, periodLabel } from '@/lib/payroll-domain'
 export default function Employee({ params }: { params: { id: string } }) {
   const { data, period, name } = usePayroll(),
@@ -132,8 +132,8 @@ export default function Employee({ params }: { params: { id: string } }) {
           </table>
         </div>
       </Panel>
-      <Panel title="Review items in selected payroll">
-        <ReviewList
+      <Panel title="Discrepancies in selected payroll">
+        <DiscrepancyList
           alerts={data.alerts.filter(
             (a) =>
               a.employee_id === params.id && a.current_period_id === period?.id,

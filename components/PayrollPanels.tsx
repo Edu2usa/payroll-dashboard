@@ -7,7 +7,7 @@ import {
   Users,
   Clock,
   Timer,
-  ClipboardCheck,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   Alert,
@@ -15,7 +15,6 @@ import {
   Panel,
   usePayroll,
   downloadCSV,
-  requestJSON,
 } from './PayrollWorkspace'
 import {
   categories,
@@ -24,7 +23,6 @@ import {
   number,
   contributions,
   percentChange,
-  dateOnly,
 } from '@/lib/payroll-domain'
 
 export function PeriodStatus({ period }: { period: Period }) {
@@ -37,11 +35,6 @@ export function PeriodStatus({ period }: { period: Period }) {
           ? '✓ Matches journal'
           : '! Journal mismatch'}
       </span>
-      <span className="pw-badge">
-        {period.reviewed
-          ? `Reviewed by ${period.reviewed_by} · ${dateOnly(period.reviewed_at)}`
-          : 'Not yet reviewed by a person'}
-      </span>
       {period.reconciliation.issues.length > 0 && (
         <span className="pw-badge high">
           Check: {period.reconciliation.issues.join(', ')}
@@ -52,7 +45,7 @@ export function PeriodStatus({ period }: { period: Period }) {
 }
 export function Summary({ period }: { period: Period }) {
   const b = period.breakdown
-  const icons = [Wallet, Banknote, Users, Clock, Timer, ClipboardCheck]
+  const icons = [Wallet, Banknote, Users, Clock, Timer, AlertTriangle]
   return (
     <>
       <PeriodStatus period={period} />
@@ -89,10 +82,10 @@ export function Summary({ period }: { period: Period }) {
             `/source/${period.id}?category=double_time`,
           ],
           [
-            'Needs review',
-            String(period.open_alerts),
-            'Open review items',
-            '/review',
+            'Worth checking',
+            String(period.discrepancy_count),
+            'Unusual changes to understand',
+            '/discrepancies',
           ],
         ].map(([label, value, detail, href], i) => {
           const Icon = icons[i]
@@ -117,92 +110,20 @@ export function Summary({ period }: { period: Period }) {
     </>
   )
 }
-export function ReviewForm({
-  id,
-  reviewed,
-  onCancel,
-}: {
-  id: string
-  reviewed: boolean
-  onCancel: () => void
-}) {
-  const { refresh } = usePayroll(),
-    [actor, setActor] = useState(''),
-    [note, setNote] = useState(''),
-    [saving, setSaving] = useState(false),
-    [error, setError] = useState('')
-  async function save(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError('')
-    try {
-      await requestJSON('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, actor, note, is_reviewed: !reviewed }),
-      })
-      await refresh()
-      onCancel()
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setSaving(false)
-    }
-  }
-  return (
-    <form className="pw-review-form" onSubmit={save}>
-      <h3>{reviewed ? 'Reopen review' : 'Record your review'}</h3>
-      <p>
-        Your entered name is recorded with this action. The application uses a
-        shared login.
-      </p>
-      <label>
-        Your name
-        <input
-          value={actor}
-          onChange={(e) => setActor(e.target.value)}
-          required
-          maxLength={120}
-        />
-      </label>
-      <label>
-        Review note
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          maxLength={2000}
-          placeholder="What did you verify or explain?"
-        />
-      </label>
-      {error && <p role="alert">{error}</p>}
-      <div className="pw-actions">
-        <button className="pw-primary" disabled={saving}>
-          {saving ? 'Saving…' : reviewed ? 'Reopen item' : 'Save review'}
-        </button>
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </form>
-  )
-}
-export function ReviewList({
+export function DiscrepancyList({
   alerts,
   limit,
 }: {
   alerts: Alert[]
   limit?: number
 }) {
-  const { name, data } = usePayroll(),
-    [editing, setEditing] = useState('')
+  const { name } = usePayroll()
   return (
     <>
       {alerts.length === 0 ? (
-        <p className="pw-empty">No review items match this view.</p>
+        <p className="pw-empty">No discrepancies match this view.</p>
       ) : (
         alerts.slice(0, limit).map((a) => {
-          const employee = data.employees.find((e) => e.id === a.employee_id)
           return (
             <div className="pw-alert" key={a.id}>
               <div>
@@ -214,8 +135,8 @@ export function ReviewList({
                     {a.severity === 'high'
                       ? '! High priority'
                       : a.severity === 'medium'
-                        ? 'Review'
-                        : 'Information'}
+                        ? 'Worth checking'
+                        : 'Context only'}
                   </span>
                   <span className="pw-badge">{a.field.replace(/_/g, ' ')}</span>
                 </div>
@@ -228,19 +149,6 @@ export function ReviewList({
                   {a.difference !== null &&
                     ` · Change: ${a.difference >= 0 ? '+' : ''}${number(a.difference)}`}
                 </small>
-                {a.is_reviewed && (
-                  <small>
-                    Reviewed by {a.reviewed_by} · {dateOnly(a.reviewed_at)}
-                    {a.review_note && ` · ${a.review_note}`}
-                  </small>
-                )}
-                {editing === a.id && (
-                  <ReviewForm
-                    id={a.id}
-                    reviewed={a.is_reviewed}
-                    onCancel={() => setEditing('')}
-                  />
-                )}
               </div>
               <div className="pw-alert-actions">
                 <Link
@@ -257,9 +165,6 @@ export function ReviewList({
                     Previous source
                   </Link>
                 )}
-                <button onClick={() => setEditing(a.id)}>
-                  {a.is_reviewed ? 'Reopen' : 'Review item'}
-                </button>
               </div>
             </div>
           )

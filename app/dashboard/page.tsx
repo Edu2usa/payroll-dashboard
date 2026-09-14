@@ -13,7 +13,7 @@ import {
 import { usePayroll, PageTitle, Panel } from '@/components/PayrollWorkspace'
 import {
   Summary,
-  ReviewList,
+  DiscrepancyList,
   Changes,
   Breakdown,
   Taxes,
@@ -21,6 +21,7 @@ import {
 import { previousPeriod, dateOnly, money, number } from '@/lib/payroll-domain'
 import { PayrollHistoryCharts } from '@/components/PayrollHistoryCharts'
 import { PayrollComposition } from '@/components/PayrollComposition'
+import { PayrollSignals } from '@/components/PayrollSignals'
 export default function Dashboard() {
   const { data, period, name } = usePayroll()
   if (!period)
@@ -28,7 +29,7 @@ export default function Dashboard() {
       <>
         <PageTitle
           title="Your payroll workspace"
-          description="Import a Paychex journal to start reviewing payroll."
+          description="Import a Paychex journal to understand payroll changes."
         />
         <Link className="pw-button pw-primary" href="/upload">
           Import first journal
@@ -37,7 +38,7 @@ export default function Dashboard() {
     )
   const previous = previousPeriod(period, data.periods)
   const alerts = data.alerts.filter(
-    (a) => a.current_period_id === period.id && !a.is_reviewed,
+    (a) => a.current_period_id === period.id && a.severity !== 'info',
   )
   const trend = [...data.periods].reverse().map((p) => ({
     date: dateOnly(p.check_date),
@@ -55,25 +56,26 @@ export default function Dashboard() {
     <>
       <PageTitle
         title="Payroll overview"
-        description="Understand this payroll, review changes, and trace every total to its journal."
+        description="Understand this payroll, spot unusual changes, and trace every total to its journal."
       />
       <Summary period={period} />
+      <PayrollSignals period={period} />
       <PayrollComposition period={period} />
       <Panel
-        title="Needs review"
+        title="Discrepancy worth checking"
         description={
           alerts.length
             ? String(alerts.length) +
-              ' open items. Start with the highest priority.'
-            : 'No open items. A person can now complete the period review.'
+              ' employee changes worth understanding. A flag does not mean the payroll is wrong.'
+            : 'No unusual employee changes detected for this payroll.'
         }
         action={
-          <Link className="pw-button" href="/review">
-            Open review workspace →
+          <Link className="pw-button" href="/discrepancies">
+            See discrepancies →
           </Link>
         }
       >
-        <ReviewList alerts={alerts} limit={4} />
+        <DiscrepancyList alerts={alerts} limit={4} />
       </Panel>
       {previous && <Changes current={period} previous={previous} />}
       <div className="pw-grid-two">

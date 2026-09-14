@@ -13,13 +13,17 @@ import {
   LogOut,
   Menu,
   X,
-  ClipboardCheck,
+  AlertTriangle,
 } from 'lucide-react'
 import { BrandLogo } from './BrandLogo'
 
 const navigationItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-  { href: '/review', label: 'Review', icon: ClipboardCheck },
+  {
+    href: '/discrepancies',
+    label: 'Discrepancy worth checking',
+    icon: AlertTriangle,
+  },
   { href: '/employees', label: 'Employees', icon: Users },
   { href: '/comparison', label: 'Comparison', icon: TrendingUp },
   { href: '/history', label: 'History', icon: Clock },

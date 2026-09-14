@@ -65,7 +65,7 @@ export default function History() {
     <>
       <PageTitle
         title="Payroll history"
-        description="Every imported payroll, its source, saved versions and review history."
+        description="Every imported payroll, its source, saved versions and unusual changes."
       />
       <Panel
         title="Imported payrolls"
@@ -82,8 +82,7 @@ export default function History() {
                   'Gross',
                   'Net',
                   'Journal matches',
-                  'Reviewed',
-                  'Open review items',
+                  'Discrepancies worth checking',
                 ],
                 ...rows.map((p) => [
                   p.period_start,
@@ -94,8 +93,7 @@ export default function History() {
                   p.total_earnings,
                   p.total_net_pay,
                   p.reconciliation.matches,
-                  p.reviewed,
-                  p.open_alerts,
+                  p.discrepancy_count,
                 ]),
               ])
             }
@@ -123,7 +121,7 @@ export default function History() {
                 <th>Gross</th>
                 <th>Net</th>
                 <th>Journal</th>
-                <th>Review</th>
+                <th>Worth checking</th>
               </tr>
             </thead>
             <tbody>
@@ -145,8 +143,8 @@ export default function History() {
                     </Link>
                   </td>
                   <td>
-                    <Link href="/review" onClick={() => setPeriod(p.id)}>
-                      {p.reviewed ? 'Reviewed' : p.open_alerts + ' open'}
+                    <Link href="/discrepancies" onClick={() => setPeriod(p.id)}>
+                      {p.discrepancy_count + ' discrepancies'}
                     </Link>
                   </td>
                 </tr>
@@ -192,9 +190,9 @@ export default function History() {
             <>
               <p className="my-4">
                 Restore this version’s figures for the displayed period. The
-                current figures remain available as a saved version. Review
-                status will reset for the restored payroll and comparisons
-                affected by it.
+                current figures remain available as a saved version.
+                Discrepancies and comparisons will be recalculated using the
+                restored figures.
               </p>
               <label>
                 Your name
@@ -265,60 +263,6 @@ export default function History() {
             </tbody>
           </table>
         </div>
-      </Panel>
-      <Panel
-        title="Review history"
-        description="Review actions are retained even after the payroll version changes."
-        action={
-          <button
-            onClick={() =>
-              downloadCSV('review-history.csv', [
-                ['Date', 'Reviewer', 'Action', 'Note'],
-                ...data.events.map((e) => [
-                  e.created_at,
-                  e.actor,
-                  e.is_reviewed ? 'Reviewed' : 'Reopened',
-                  e.note,
-                ]),
-              ])
-            }
-          >
-            Export CSV
-          </button>
-        }
-      >
-        {data.events.length ? (
-          <div className="pw-scroll">
-            <table className="pw-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Recorded</th>
-                  <th>Reviewer</th>
-                  <th>Action</th>
-                  <th className="pw-text">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.events.map((e) => (
-                  <tr key={e.id}>
-                    <td>
-                      {e.alert?.employee_id
-                        ? name(e.alert.employee_id)
-                        : 'Period review'}
-                    </td>
-                    <td>{dateTime(e.created_at)}</td>
-                    <td>{e.actor}</td>
-                    <td>{e.is_reviewed ? 'Reviewed' : 'Reopened'}</td>
-                    <td className="pw-text">{e.note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="pw-empty">No review actions have been recorded yet.</p>
-        )}
       </Panel>
     </>
   )
