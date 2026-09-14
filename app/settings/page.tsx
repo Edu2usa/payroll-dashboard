@@ -1,75 +1,64 @@
 'use client'
-
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { AppTopbar } from '@/components/AppTopbar'
-
-export default function SettingsPage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const res = await fetch('/api/auth/session')
-      if (!res.ok) router.push('/')
-    }
-    checkAuth()
-  }, [router])
-
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.push('/')
-  }
-
+import { PageTitle, Panel } from '@/components/PayrollWorkspace'
+export default function Settings() {
   return (
-    <div className="brand-page">
-      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
-
-      <div className="container section-shell">
-        <div className="page-title">
-          <h1>Settings</h1>
-          <p>Core application details styled to match the rest of the Preferred Maintenance app family.</p>
-        </div>
-
-        <div className="max-w-2xl">
-          <div className="card surface-panel mb-6">
-            <h2 className="text-xl font-bold mb-4">Application</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Company Name</p>
-                <p className="text-gray-600">Preferred Maintenance, LLC</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Location</p>
-                <p className="text-gray-600">Connecticut</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card surface-panel mb-6">
-            <h2 className="text-xl font-bold mb-4">Data</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">Database</p>
-                <p className="text-gray-600">Supabase PostgreSQL</p>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-700 mb-2">API Authentication</p>
-                <p className="text-gray-600">X-API-Key Header</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="card surface-panel">
-            <h2 className="text-xl font-bold mb-4">Account</h2>
-            <button
-              onClick={handleLogout}
-              className="btn btn-danger"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <>
+      <PageTitle
+        title="Payroll guide"
+        description="How to use this workspace and interpret its review status."
+      />
+      <Panel title="From journal to completed review">
+        <ol className="list-decimal pl-5 space-y-3">
+          <li>
+            Import a Paychex PDF and inspect the period, employee count and
+            totals in the preview.
+          </li>
+          <li>
+            Save the import. A previous version is retained whenever a payroll
+            is replaced.
+          </li>
+          <li>
+            Open Review, inspect the journal evidence, and record why each
+            flagged change is expected or needs follow-up.
+          </li>
+          <li>
+            After the figures match the journal and all items are reviewed,
+            record the period review.
+          </li>
+        </ol>
+      </Panel>
+      <Panel title="What the status means">
+        <p>
+          <strong>Matches journal</strong> means employee categories and totals
+          reconcile with the retained source. It does not establish that
+          underlying wages, deductions or taxes were calculated correctly.
+        </p>
+        <p className="mt-3">
+          <strong>Reviewed by a person</strong> records an explicit review of
+          the current version. Names are entered by the reviewer under the
+          shared login.
+        </p>
+        <p className="mt-3">
+          New or absent employees describe payroll appearances. First payroll is
+          not a hire date. An average hourly earning rate is not necessarily an
+          employee’s contracted pay rate.
+        </p>
+      </Panel>
+      <Panel title="Review rules">
+        <p>
+          Hours changing more than 20%; average regular earnings per hour
+          changing more than $0.02; overtime or Double Time above 20 hours and
+          increasing; deductions changing over 10%, starting or stopping; new or
+          absent employees; and category or net-pay mismatches are shown for
+          review.
+        </p>
+        <p className="mt-3">
+          Imports of earlier payrolls automatically refresh the comparisons
+          against their chronological predecessors. A changed import version
+          requires a fresh review. Exported files contain payroll data and
+          should be stored with your payroll records.
+        </p>
+      </Panel>
+    </>
   )
 }

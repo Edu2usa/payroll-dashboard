@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-let browserClient: ReturnType<typeof createClient> | null = null
-let serverClient: ReturnType<typeof createClient> | null = null
+let browserClient: SupabaseClient<any> | null = null
+let serverClient: SupabaseClient<any> | null = null
 
 function requireEnv(name: string): string {
   const value = process.env[name]
@@ -15,7 +15,7 @@ function getBrowserClient() {
   if (!browserClient) {
     browserClient = createClient(
       requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-      requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+      requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
     )
   }
 
@@ -26,20 +26,20 @@ function getServerClient() {
   if (!serverClient) {
     serverClient = createClient(
       requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-      requireEnv('SUPABASE_SERVICE_ROLE_KEY')
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
     )
   }
 
   return serverClient
 }
 
-export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabase = new Proxy({} as SupabaseClient<any>, {
   get(_target, prop, receiver) {
     return Reflect.get(getBrowserClient() as object, prop, receiver)
   },
 })
 
-export const supabaseServer = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabaseServer = new Proxy({} as SupabaseClient<any>, {
   get(_target, prop, receiver) {
     return Reflect.get(getServerClient() as object, prop, receiver)
   },

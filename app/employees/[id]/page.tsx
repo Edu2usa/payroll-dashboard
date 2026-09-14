@@ -1,128 +1,145 @@
 'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { AppTopbar } from '@/components/AppTopbar'
-
-type Employee = {
-  id: string
-  employee_id: number
-  last_name: string
-  first_name: string
-  middle_initial: string
-  department: number
-  first_seen: string
-  last_seen: string
-}
-
-type PayrollEntry = {
-  id: string
-  payroll_period_id: string
-  payroll_periods: { period_start: string; period_end: string; check_date: string }
-  total_hours: number
-  total_earnings: number
-  total_withholdings: number
-  net_pay: number
-}
-
-export default function EmployeeDetailPage() {
-  const router = useRouter()
-  const params = useParams()
-  const [employee, setEmployee] = useState<Employee | null>(null)
-  const [entries, setEntries] = useState<PayrollEntry[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const res = await fetch('/api/auth/session')
-      if (!res.ok) router.push('/')
-    }
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`/api/employees/${params.id}`)
-        const data = await res.json()
-        setEmployee(data)
-        setEntries(data.entries || [])
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    if (params.id) fetchData()
-  }, [params.id])
-
+import Link from 'next/link'
+import {
+  usePayroll,
+  PageTitle,
+  Panel,
+  downloadCSV,
+} from '@/components/PayrollWorkspace'
+import { ReviewList } from '@/components/PayrollPanels'
+import { money, number, dateOnly, periodLabel } from '@/lib/payroll-domain'
+export default function Employee({ params }: { params: { id: string } }) {
+  const { data, period, name } = usePayroll(),
+    employee = data.employees.find((e) => e.id === params.id)
+  if (!employee)
+    return (
+      <PageTitle
+        title="Employee not found"
+        description="Return to Employees and choose an imported employee."
+      />
+    )
+  const rows = data.entries
+    .filter((e) => e.employee_id === params.id)
+    .map((e) => ({
+      ...e,
+      period: data.periods.find((p) => p.id === e.payroll_period_id)!,
+    }))
+    .sort((a, b) => b.period.period_end.localeCompare(a.period.period_end))
   return (
-    <div className="brand-page">
-      <AppTopbar backHref="/employees" backLabel="Back to Employees" />
-
-      <div className="container section-shell">
-        {loading ? (
-          <div className="text-center py-12">Loading...</div>
-        ) : employee ? (
-          <>
-            <div className="card surface-panel mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-4">{employee.last_name}, {employee.first_name}{employee.middle_initial ? ' ' + employee.middle_initial : ''}</h1>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-gray-600 text-sm">Employee ID</p>
-                  <p className="font-mono font-semibold">{employee.employee_id}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Department</p>
-                  <p className="font-semibold">{employee.department}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Hire Date</p>
-                  <p className="font-semibold">{employee.first_seen}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Last Seen</p>
-                  <p className="font-semibold">{employee.last_seen}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="card surface-panel">
-              <h2 className="text-xl font-bold mb-4">Pay History</h2>
-              {entries.length === 0 ? (
-                <p className="text-center py-8 text-gray-500">No payroll entries</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Period</th>
-                        <th>Hours</th>
-                        <th>Earnings</th>
-                        <th>Withholdings</th>
-                        <th>Net Pay</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entries.map(e => (
-                        <tr key={e.id}>
-                          <td>{e.payroll_periods.period_start} to {e.payroll_periods.period_end}</td>
-                          <td>{e.total_hours.toFixed(2)}</td>
-                          <td className="brand-money">${e.total_earnings.toFixed(2)}</td>
-                          <td className="text-red-600">${e.total_withholdings.toFixed(2)}</td>
-                          <td className="text-green-600 font-semibold">${e.net_pay.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-12">Employee not found</div>
-        )}
-      </div>
-    </div>
+    <>
+      <PageTitle
+        title={name(employee.id)}
+        description={
+          'Employee ' +
+          employee.employee_id +
+          ' · First payroll ' +
+          dateOnly(employee.first_seen) +
+          ' · Last payroll ' +
+          dateOnly(employee.last_seen)
+        }
+      />
+      <Panel
+        title="Payroll history"
+        description="Dates describe observed payrolls, not hire or termination dates. Average regular pay per hour includes all reported regular earning lines."
+        action={
+          <button
+            onClick={() =>
+              downloadCSV('employee-payroll-history.csv', [
+                [
+                  'Period start',
+                  'Period end',
+                  'Check date',
+                  'Department',
+                  'Hours',
+                  'Gross',
+                  'Net',
+                  'Regular hours',
+                  'Regular earnings',
+                  'OT hours',
+                  'OT earnings',
+                  'DT hours',
+                  'DT earnings',
+                ],
+                ...rows.map((e) => [
+                  e.period.period_start,
+                  e.period.period_end,
+                  e.period.check_date,
+                  e.department,
+                  e.total_hours,
+                  e.total_earnings,
+                  e.net_pay,
+                  e.regular_hours,
+                  e.regular_earnings,
+                  e.overtime_hours,
+                  e.overtime_earnings,
+                  e.double_time_hours,
+                  e.double_time_earnings,
+                ]),
+              ])
+            }
+          >
+            Export CSV
+          </button>
+        }
+      >
+        <div className="pw-scroll">
+          <table className="pw-table">
+            <thead>
+              <tr>
+                <th>Pay period</th>
+                <th>Check date</th>
+                <th>Department</th>
+                <th>Total hours</th>
+                <th>Gross</th>
+                <th>Net</th>
+                <th>Regular avg. $/h</th>
+                <th>OT hours</th>
+                <th>DT hours</th>
+                <th>Deductions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((e) => (
+                <tr key={e.id}>
+                  <td>
+                    <Link
+                      href={
+                        '/source/' +
+                        e.payroll_period_id +
+                        '?employee=' +
+                        employee.id
+                      }
+                    >
+                      {periodLabel(e.period)}
+                    </Link>
+                  </td>
+                  <td>{dateOnly(e.period.check_date)}</td>
+                  <td>{e.department}</td>
+                  <td>{number(e.total_hours)}</td>
+                  <td>{money(e.total_earnings)}</td>
+                  <td>{money(e.net_pay)}</td>
+                  <td>
+                    {e.regular_hours > 0
+                      ? money(e.regular_earnings / e.regular_hours)
+                      : '—'}
+                  </td>
+                  <td>{number(e.overtime_hours)}</td>
+                  <td>{number(e.double_time_hours)}</td>
+                  <td>{money(e.total_deductions)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+      <Panel title="Review items in selected payroll">
+        <ReviewList
+          alerts={data.alerts.filter(
+            (a) =>
+              a.employee_id === params.id && a.current_period_id === period?.id,
+          )}
+        />
+      </Panel>
+    </>
   )
 }

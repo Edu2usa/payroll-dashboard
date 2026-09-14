@@ -1,115 +1,141 @@
 'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
-import { AppTopbar } from '@/components/AppTopbar'
-
-type Employee = {
-  id: string
-  employee_id: number
-  last_name: string
-  first_name: string
-  middle_initial: string
-  department: number
-  last_seen: string
-}
-
-export default function EmployeesPage() {
-  const router = useRouter()
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const res = await fetch('/api/auth/session')
-      if (!res.ok) router.push('/')
-    }
-    checkAuth()
-  }, [router])
-
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const url = search
-          ? `/api/employees?search=${encodeURIComponent(search)}`
-          : '/api/employees'
-        const res = await fetch(url)
-        const data = await res.json()
-        setEmployees(data)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    const timer = setTimeout(() => {
-      setLoading(true)
-      fetchEmployees()
-    }, search ? 300 : 0)
-
-    return () => clearTimeout(timer)
-  }, [search])
-
+import {
+  usePayroll,
+  PageTitle,
+  Panel,
+  downloadCSV,
+} from '@/components/PayrollWorkspace'
+import { money, number, dateOnly } from '@/lib/payroll-domain'
+export default function Employees() {
+  const { data, period, name } = usePayroll(),
+    [search, setSearch] = useState(''),
+    [department, setDepartment] = useState(''),
+    [scope, setScope] = useState('period')
+  const entries = data.entries.filter(
+      (e) => e.payroll_period_id === period?.id,
+    ),
+    byEmployee = new Map(entries.map((e) => [e.employee_id, e]))
+  const rows = data.employees
+    .filter(
+      (e) =>
+        (scope === 'all' || byEmployee.has(e.id)) &&
+        (!department ||
+          String(byEmployee.get(e.id)?.department ?? e.department) ===
+            department) &&
+        (name(e.id) + ' ' + e.employee_id)
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+    )
+    .sort((a, b) => name(a.id).localeCompare(name(b.id)))
   return (
-    <div className="brand-page">
-      <AppTopbar backHref="/dashboard" backLabel="Back to Dashboard" />
-
-      <div className="container section-shell">
-        <div className="page-title">
-          <h1>Employees</h1>
-          <p>Search and open payroll employee records with the updated Preferred Maintenance brand system.</p>
+    <>
+      <PageTitle
+        title="Employees"
+        description="Payroll appearances and reported pay. Employment status must be verified separately."
+      />
+      <Panel
+        title={rows.length + ' employees'}
+        action={
+          <button
+            onClick={() =>
+              downloadCSV('employees.csv', [
+                [
+                  'Employee number',
+                  'Name',
+                  'Department',
+                  'First payroll',
+                  'Last payroll',
+                  'Selected period hours',
+                  'Selected period gross',
+                ],
+                ...rows.map((e) => [
+                  e.employee_id,
+                  name(e.id),
+                  byEmployee.get(e.id)?.department ?? e.department,
+                  e.first_seen,
+                  e.last_seen,
+                  byEmployee.get(e.id)?.total_hours ?? '',
+                  byEmployee.get(e.id)?.total_earnings ?? '',
+                ]),
+              ])
+            }
+          >
+            Export CSV
+          </button>
+        }
+      >
+        <div className="pw-toolbar">
+          <label>
+            Search
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name or employee number"
+            />
+          </label>
+          <label>
+            Scope
+            <select value={scope} onChange={(e) => setScope(e.target.value)}>
+              <option value="period">Selected payroll</option>
+              <option value="all">All imported employees</option>
+            </select>
+          </label>
+          <label>
+            Department
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            >
+              <option value="">All departments</option>
+              {[...new Set(data.entries.map((e) => e.department))]
+                .sort()
+                .map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+            </select>
+          </label>
         </div>
-
-        <div className="card surface-panel mb-6">
-          <input
-            type="text"
-            placeholder="Search by name or ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input"
-          />
+        <div className="pw-scroll">
+          <table className="pw-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Number</th>
+                <th>Department</th>
+                <th>Hours</th>
+                <th>Gross pay</th>
+                <th>Net pay</th>
+                <th>First payroll</th>
+                <th>Last payroll</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((e) => {
+                const entry = byEmployee.get(e.id)
+                return (
+                  <tr key={e.id}>
+                    <td>
+                      <Link href={'/employees/' + e.id}>{name(e.id)}</Link>
+                    </td>
+                    <td>{e.employee_id}</td>
+                    <td>{entry?.department ?? e.department}</td>
+                    <td>{entry ? number(entry.total_hours) : '—'}</td>
+                    <td>{entry ? money(entry.total_earnings) : '—'}</td>
+                    <td>{entry ? money(entry.net_pay) : '—'}</td>
+                    <td>{dateOnly(e.first_seen)}</td>
+                    <td>{dateOnly(e.last_seen)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
-
-        {loading ? (
-          <div className="text-center py-12">Loading...</div>
-        ) : (
-          <div className="card surface-panel">
-            {employees.length === 0 ? (
-              <p className="text-center py-12 text-gray-500">No employees found</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Department</th>
-                      <th>Rate</th>
-                      <th>Last Seen</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employees.map(emp => (
-                      <tr key={emp.id}>
-                        <td className="font-mono">{emp.employee_id}</td>
-                        <td>{emp.last_name}, {emp.first_name}{emp.middle_initial ? ' ' + emp.middle_initial : ''}</td>
-                        <td>Dept {emp.department}</td>
-                        <td className="text-gray-600">-</td>
-                        <td>{emp.last_seen}</td>
-                        <td><Link href={`/employees/${emp.id}`} className="emphasis-link">View</Link></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+        {!rows.length && (
+          <p className="pw-empty">No employees match these filters.</p>
         )}
-      </div>
-    </div>
+      </Panel>
+    </>
   )
 }

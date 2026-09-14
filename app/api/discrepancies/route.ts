@@ -1,45 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabaseServer } from '@/lib/supabase'
 import { checkApiAuth } from '@/lib/auth'
-
+import { getWorkspace } from '@/lib/workspace-data'
 export async function GET(request: NextRequest) {
+  if (!cookies().get('payroll_session') && !checkApiAuth(request))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
-    const cookieStore = await cookies()
-    const session = cookieStore.get('payroll_session')
-    const apiKeyValid = checkApiAuth(request)
-    
-    if (!session && !apiKeyValid) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { searchParams } = new URL(request.url)
-    const reviewed = searchParams.get('reviewed')
-    const severity = searchParams.get('severity')
-    const limit = parseInt(searchParams.get('limit') || '100')
-
-    let query = supabaseServer
-      .from('discrepancies')
-      .select('*, employees(*), payroll_periods(*)')
-
-    if (reviewed !== null) {
-      query = query.eq('is_reviewed', reviewed === 'true')
-    }
-
-    if (severity) {
-      query = query.eq('severity', severity)
-    }
-
-    query = query.order('created_at', { ascending: false }).limit(limit)
-
-    const { data, error } = await query
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(data)
-  } catch (err) {
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
+    const data = await getWorkspace(),
+      q = request.nextUrl.searchParams
+    const result = data.alerts.filter(
+      (a: any) =>
+        (!q.has('reviewed') ||
+          a.is_reviewed === (q.get('reviewed') === 'true')) &&
+        (!q.get('severity') || a.severity === q.get('severity')) &&
+        (!q.get('periodId') || a.current_period_id === q.get('periodId')),
+    )
+    const limit = Math.min(1000, Math.max(1, Number(q.get('limit')) || 100))
+    return NextResponse.json(
+      result.slice(0, limit).map((a: any) => ({
+        ...a,
+        employees: data.employees.find((e: any) => e.id === a.employee_id),
+        payroll_periods: data.periods.find(
+          (p: any) => p.id === a.current_period_id,
+        ),
+      })),
+    )
+  } catch {
+    return NextResponse.json(
+      { error: 'Could not load review items.' },
+      { status: 500 },
+    )
   }
 }

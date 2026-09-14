@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fira_Sans, Fira_Code } from 'next/font/google'
 import './globals.css'
+import { PayrollWorkspace } from '@/components/PayrollWorkspace'
 
 const firaSans = Fira_Sans({
   subsets: ['latin'],
@@ -28,7 +29,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${firaSans.variable} ${firaCode.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <PayrollWorkspace>{children}</PayrollWorkspace>
+      </body>
     </html>
   )
 }
