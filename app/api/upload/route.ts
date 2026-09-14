@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseServer } from '@/lib/supabase'
 import { parsePaychexPDF } from '@/lib/pdf-parser'
+import { getPayrollReconciliationIssues } from '@/lib/payroll-reconciliation'
 import { detectDiscrepancies } from '@/lib/discrepancy-detector'
 
 export async function POST(request: NextRequest) {
@@ -21,6 +22,13 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const parsed = await parsePaychexPDF(buffer)
+    const reconciliationIssues = getPayrollReconciliationIssues(parsed)
+    if (reconciliationIssues.length > 0) {
+      return NextResponse.json({
+        error: 'Payroll categories do not reconcile with the journal. No payroll data was changed.',
+        issues: reconciliationIssues,
+      }, { status: 422 })
+    }
 
     // Check if this payroll period already exists
     const { data: existingPeriod } = await supabaseServer

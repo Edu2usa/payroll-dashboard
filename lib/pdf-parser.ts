@@ -1,4 +1,4 @@
-import { PayrollEntry, Employee } from './supabase'
+import type { PayrollEntry, Employee } from './supabase'
 
 export interface ParsedPayroll {
   period_start: string
@@ -236,33 +236,32 @@ export function extractCompanyBreakdownFromText(rawText: string) {
     return numbers
   }
 
-  const categoryLabelBlock = `${lines[start + 6] || ''} ${lines[start + 7] || ''} ${lines[start + 8] || ''}`.replace(/\s+/g, ' ')
-  const includesVacation = /Vacation/i.test(categoryLabelBlock)
-  const categoryCount = includesVacation ? 4 : 3
-
-  const hourNumbers: number[] = []
-  const earningNumbers: number[] = []
-  for (let i = start + 9; i < Math.min(lines.length, start + 20); i++) {
-    if (lines[i] === 'Social SecurityMedicareFed Income TaxCT Income TaxCT PFML') break
-    const hoursOnLine = extractFixedDecimalNumbers(lines[i], 4)
-    if (hoursOnLine.length > 0) {
-      for (const match of hoursOnLine) hourNumbers.push(match)
-      continue
-    }
-    for (const match of extractFixedDecimalNumbers(lines[i], 2)) earningNumbers.push(match)
+  // The summary omits categories with no activity. Read the labels instead of
+  // assuming fixed line offsets or an always-present Double Time column.
+  let valuesStart = start + 6
+  while (valuesStart < lines.length && !/^\d/.test(lines[valuesStart])) valuesStart++
+  const categoryLabels = lines.slice(start + 6, valuesStart).join('').replace(/\s/g, '')
+  const categories = categoryLabels.match(/Regular|DoubleTime|Overtime|Vacation/g) || []
+  const fields = { Regular: 'regular', DoubleTime: 'double_time', Overtime: 'overtime', Vacation: 'vacation' } as const
+  const valuesEnd = lines.findIndex((line, idx) => idx >= valuesStart && line.startsWith('Social Security'))
+  const values = lines.slice(valuesStart, valuesEnd < 0 ? valuesStart : valuesEnd).join('').replace(/\s/g, '')
+  let remaining = values
+  const readValue = (decimals: number) => {
+    const match = remaining.match(new RegExp(`^[\\d,]+\\.\\d{${decimals}}`))
+    if (!match) return null
+    remaining = remaining.slice(match[0].length)
+    return parseNumber(match[0])
   }
-
-  const hours = hourNumbers.slice(0, categoryCount)
-  const earnings = earningNumbers.slice(0, categoryCount)
-
-  breakdown.regular_hours = hours[0] || 0
-  breakdown.double_time_hours = hours[1] || 0
-  breakdown.overtime_hours = hours[2] || 0
-  breakdown.vacation_hours = includesVacation ? (hours[3] || 0) : 0
-  breakdown.regular_earnings = earnings[0] || 0
-  breakdown.double_time_earnings = earnings[1] || 0
-  breakdown.overtime_earnings = earnings[2] || 0
-  breakdown.vacation_earnings = includesVacation ? (earnings[3] || 0) : 0
+  const hours = categories.map(() => readValue(4))
+  const earnings = categories.map(() => readValue(2))
+  if (categories.length > 0 && categories.join('') === categoryLabels && !remaining &&
+      hours.every(value => value !== null) && earnings.every(value => value !== null)) {
+    categories.forEach((category, index) => {
+      const field = fields[category as keyof typeof fields]
+      breakdown[`${field}_hours`] = hours[index]!
+      breakdown[`${field}_earnings`] = earnings[index]!
+    })
+  }
 
   const withholdingIdx = lines.findIndex((line, idx) => idx > start && line === 'Social SecurityMedicareFed Income TaxCT Income TaxCT PFML')
   if (withholdingIdx >= 0) {
@@ -280,17 +279,20 @@ export function extractCompanyBreakdownFromText(rawText: string) {
 
   const deductionIdx = lines.findIndex((line, idx) => idx > start && line === 'DeductionHSA')
   if (deductionIdx >= 0) {
+    let amountStart = deductionIdx + 1
+    while (amountStart < lines.length && !/^[\d,]+\.\d{2}/.test(lines[amountStart]) && lines[amountStart] !== 'Check') amountStart++
+    const labels = lines.slice(deductionIdx, amountStart).join('').replace(/\s/g, '')
+    const deductions = labels.match(/Deduction|HSA|Health|LoanRepay(?:ment)?|SimpleIra/g) || []
+    const deductionFields = { Deduction: 'other_deduction', HSA: 'hsa', Health: 'health_deduction', LoanRepay: 'loan_repayment', LoanRepayment: 'loan_repayment', SimpleIra: 'simple_ira' } as const
     const deductionNumbers: number[] = []
-    for (let i = deductionIdx + 1; i < Math.min(lines.length, deductionIdx + 10); i++) {
-      if (lines[i] === 'Check') break
-      const matches = extractFixedDecimalNumbers(lines[i], 2)
-      for (const match of matches) deductionNumbers.push(match)
+    for (let i = amountStart; i < lines.length && lines[i] !== 'Check'; i++) {
+      deductionNumbers.push(...extractFixedDecimalNumbers(lines[i], 2))
     }
-    breakdown.other_deduction = deductionNumbers[0] || 0
-    breakdown.hsa = deductionNumbers[1] || 0
-    breakdown.health_deduction = deductionNumbers[2] || 0
-    breakdown.loan_repayment = deductionNumbers[3] || 0
-    breakdown.simple_ira = deductionNumbers[4] || 0
+    if (deductionNumbers.length === deductions.length) {
+      deductions.forEach((label, index) => {
+        breakdown[deductionFields[label as keyof typeof deductionFields]] = deductionNumbers[index]
+      })
+    }
   }
 
   return breakdown
@@ -299,7 +301,13 @@ export function extractCompanyBreakdownFromText(rawText: string) {
 export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
   const pdfParse = require('pdf-parse')
   const data = await pdfParse(buffer)
-  const rawLines = data.text.split('\n')
+  return parsePaychexText(data.text)
+}
+
+// Retained extraction text allows historical imports to be audited without
+// uploading or replacing their original payroll journals.
+export function parsePaychexText(rawText: string): ParsedPayroll {
+  const rawLines = rawText.split('\n')
   const lines = rawLines.map((l: string) => l.trim())
 
   // ========== Phase 1: Extract header dates ==========
@@ -527,15 +535,15 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
         const vals = collectNextNumbers(lines, i + 1, 3)
         if (vals.count === 3) {
           pe.regular_rate = vals.numbers[0]
-          pe.regular_hours = vals.numbers[1]
-          pe.regular_earnings = vals.numbers[2]
+          pe.regular_hours += vals.numbers[1]
+          pe.regular_earnings += vals.numbers[2]
         } else if (vals.count === 1) {
           // Salaried - just earnings
-          pe.regular_earnings = vals.numbers[0]
+          pe.regular_earnings += vals.numbers[0]
         } else if (vals.count === 2) {
           // Could be rate + earnings or hours + earnings
-          pe.regular_hours = vals.numbers[0]
-          pe.regular_earnings = vals.numbers[1]
+          pe.regular_hours += vals.numbers[0]
+          pe.regular_earnings += vals.numbers[1]
         }
         i++
         continue
@@ -546,22 +554,23 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
         const vals = collectNextNumbers(lines, i + 1, 3)
         if (vals.count >= 3) {
           pe.overtime_rate = vals.numbers[0]
-          pe.overtime_hours = vals.numbers[1]
-          pe.overtime_earnings = vals.numbers[2]
+          pe.overtime_hours += vals.numbers[1]
+          pe.overtime_earnings += vals.numbers[2]
         }
         i++
         continue
       }
 
-      // Double Time: "Double" -> "Time" -> rate -> hours -> earnings
-      if (line === 'Double' && i + 1 < lines.length && lines[i + 1] === 'Time') {
-        const vals = collectNextNumbers(lines, i + 2, 3)
+      // Paychex can put Double Time on one line or two.
+      if (line === 'Double Time' || (line === 'Double' && lines[i + 1] === 'Time')) {
+        const labelLines = line === 'Double Time' ? 1 : 2
+        const vals = collectNextNumbers(lines, i + labelLines, 3)
         if (vals.count >= 3) {
           pe.double_time_rate = vals.numbers[0]
-          pe.double_time_hours = vals.numbers[1]
-          pe.double_time_earnings = vals.numbers[2]
+          pe.double_time_hours += vals.numbers[1]
+          pe.double_time_earnings += vals.numbers[2]
         }
-        i += 2
+        i += labelLines
         continue
       }
 
@@ -570,10 +579,10 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
         const vals = collectNextNumbers(lines, i + 1, 3)
         if (vals.count >= 3) {
           pe.vacation_rate = vals.numbers[0]
-          pe.vacation_hours = vals.numbers[1]
-          pe.vacation_earnings = vals.numbers[2]
+          pe.vacation_hours += vals.numbers[1]
+          pe.vacation_earnings += vals.numbers[2]
         } else if (vals.count === 1) {
-          pe.vacation_earnings = vals.numbers[0]
+          pe.vacation_earnings += vals.numbers[0]
         }
         i++
         continue
@@ -612,36 +621,36 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
 
       // Fed Income Tax: "Fed Income Tax" or "Fed" + "Income" + "Tax"
       if (line === 'Fed Income Tax') {
-        if (i + 1 < lines.length) pe.fed_income_tax += parseNumber(lines[i + 1])
+        addWithholding(pe, 'fed_income_tax', lines, i + 1)
         i++
         continue
       }
       if (line === 'Fed' && i + 2 < lines.length && lines[i + 1] === 'Income' && lines[i + 2] === 'Tax') {
-        if (i + 3 < lines.length) pe.fed_income_tax += parseNumber(lines[i + 3])
+        addWithholding(pe, 'fed_income_tax', lines, i + 3)
         i += 3
         continue
       }
 
       // CT Income Tax: "CT Income Tax" or "CT" + "Income" + "Tax"
       if (line === 'CT Income Tax') {
-        if (i + 1 < lines.length) pe.ct_income_tax += parseNumber(lines[i + 1])
+        addWithholding(pe, 'ct_income_tax', lines, i + 1)
         i++
         continue
       }
       if (line === 'CT' && i + 2 < lines.length && lines[i + 1] === 'Income' && lines[i + 2] === 'Tax') {
-        if (i + 3 < lines.length) pe.ct_income_tax += parseNumber(lines[i + 3])
+        addWithholding(pe, 'ct_income_tax', lines, i + 3)
         i += 3
         continue
       }
 
       // CT PFL or CT PFML: "CT PFL" or "CT" + "PFL" or "CT" + "PFML"
       if (line === 'CT PFL' || line === 'CT PFML') {
-        if (i + 1 < lines.length) pe.ct_pfl += parseNumber(lines[i + 1])
+        addWithholding(pe, 'ct_pfl', lines, i + 1)
         i++
         continue
       }
       if (line === 'CT' && i + 1 < lines.length && (lines[i + 1] === 'PFL' || lines[i + 1] === 'PFML')) {
-        if (i + 2 < lines.length) pe.ct_pfl += parseNumber(lines[i + 2])
+        addWithholding(pe, 'ct_pfl', lines, i + 2)
         i += 2
         continue
       }
@@ -697,15 +706,15 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
       // ---- Payment info ----
       // Check Amt: "Check" + "Amt" -> amount
       if (line === 'Check' && i + 1 < lines.length && lines[i + 1] === 'Amt') {
-        if (i + 2 < lines.length) pe.check_amount = parseNumber(lines[i + 2])
+        if (i + 2 < lines.length) pe.check_amount += parseNumber(lines[i + 2])
         i += 2
         continue
       }
 
-      // Chkg: "Chkg" -> check_number -> amount
-      if (line === 'Chkg') {
+      // Direct deposits may be split across checking and savings accounts.
+      if (line === 'Chkg' || line === 'Savg') {
         if (i + 1 < lines.length) pe.check_number = lines[i + 1]
-        if (i + 2 < lines.length) pe.direct_deposit_amount = parseNumber(lines[i + 2])
+        if (i + 2 < lines.length) pe.direct_deposit_amount += parseNumber(lines[i + 2])
         i += 2
         continue
       }
@@ -762,6 +771,14 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
           while (k < lines.length && (!lines[k] || lines[k].match(/^\s*$/))) k++
           if (k < lines.length && lines[k].match(/^[\d,.]+$/)) {
             companyTotals.total_deductions = parseNumber(lines[k])
+          }
+          // Net Pay includes both paper checks and direct deposits. The earlier
+          // Dir Dep amount alone is not the company's total net payroll.
+          for (let n = k; n < Math.min(lines.length, k + 10); n++) {
+            if (lines[n] === 'Net' && lines[n + 1] === 'Pay') {
+              companyTotals.total_net_pay = parseNumber(lines[n + 2])
+              break
+            }
           }
           break
         }
@@ -861,8 +878,8 @@ export async function parsePaychexPDF(buffer: Buffer): Promise<ParsedPayroll> {
     period_end,
     check_date,
     run_date,
-    raw_text: data.text,
-    company_breakdown: extractCompanyBreakdownFromText(data.text),
+    raw_text: rawText,
+    company_breakdown: extractCompanyBreakdownFromText(rawText),
     employees: Array.from(employees.values()),
     totals: {
       total_hours: companyTotals.total_hours || calc_total_hours,
@@ -898,12 +915,12 @@ function findEmployeeName(lines: string[], unknownLineIdx: number): { lastName: 
   // hit a known boundary (EMPLOYEE TOTAL, page header marker, department marker, etc.)
 
   const fieldLabels = new Set([
-    'Regular', 'Overtime', 'Double', 'Time', 'Vacation',
+    'Regular', 'Overtime', 'Double', 'Time', 'Double Time', 'Vacation',
     'Social', 'Security', 'Social Security', 'Medicare',
     'Fed', 'Income', 'Tax', 'Fed Income Tax',
     'CT', 'PFL', 'PFML', 'CT Income Tax', 'CT PFL', 'CT PFML',
     'Health', 'SimpleIra', 'Simple', 'Ira', 'HSA',
-    'Direct', 'Deposit', 'Check', 'Amt', 'Chkg', 'Net',
+    'Direct', 'Deposit', 'Check', 'Amt', 'Chkg', 'Savg', 'Net',
     'Deduction', 'Loan', 'Repay', 'EE',
     'Pay', 'Date', 'Dir', 'Dep**',
   ])
@@ -1021,6 +1038,13 @@ function parseCombinedLine(line: string): { value: number; label: string | null 
   return { value: parseNumber(line), label: null }
 }
 
+function addWithholding(pe: EmployeeData['payroll_entry'], field: 'fed_income_tax' | 'ct_income_tax' | 'ct_pfl', lines: string[], amountIdx: number) {
+  if (amountIdx >= lines.length) return
+  const combined = parseCombinedLine(lines[amountIdx])
+  pe[field] += combined.value
+  if (combined.label) applyDeductionLabel(pe, combined.label, lines, amountIdx + 1)
+}
+
 // ========== Helper: Apply a deduction label found on a combined line ==========
 function applyDeductionLabel(pe: EmployeeData['payroll_entry'], label: string, lines: string[], nextLineIdx: number) {
   // The deduction amount is on the next line (or after EE/account for HSA)
@@ -1123,14 +1147,15 @@ function parseEntryWindow(lines: string[], startIdx: number, endIdx: number, pe:
       continue
     }
 
-    if (line === 'Double' && i + 1 < endIdx && lines[i + 1] === 'Time') {
-      const vals = collectNextNumbers(lines, i + 2, 3)
+    if (line === 'Double Time' || (line === 'Double' && i + 1 < endIdx && lines[i + 1] === 'Time')) {
+      const labelLines = line === 'Double Time' ? 1 : 2
+      const vals = collectNextNumbers(lines, i + labelLines, 3)
       if (vals.count >= 3) {
         pe.double_time_rate = pe.double_time_rate || vals.numbers[0]
         pe.double_time_hours += vals.numbers[1]
         pe.double_time_earnings += vals.numbers[2]
       }
-      i += 2
+      i += labelLines
       continue
     }
 
@@ -1173,19 +1198,19 @@ function parseEntryWindow(lines: string[], startIdx: number, endIdx: number, pe:
     }
 
     if (line === 'Fed Income Tax') {
-      if (i + 1 < endIdx) pe.fed_income_tax += parseNumber(lines[i + 1])
+      if (i + 1 < endIdx) addWithholding(pe, 'fed_income_tax', lines, i + 1)
       i++
       continue
     }
 
     if (line === 'CT Income Tax') {
-      if (i + 1 < endIdx) pe.ct_income_tax += parseNumber(lines[i + 1])
+      if (i + 1 < endIdx) addWithholding(pe, 'ct_income_tax', lines, i + 1)
       i++
       continue
     }
 
     if (line === 'CT PFL' || line === 'CT PFML') {
-      if (i + 1 < endIdx) pe.ct_pfl += parseNumber(lines[i + 1])
+      if (i + 1 < endIdx) addWithholding(pe, 'ct_pfl', lines, i + 1)
       i++
       continue
     }

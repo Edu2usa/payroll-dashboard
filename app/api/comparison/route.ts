@@ -119,6 +119,10 @@ export async function GET(request: NextRequest) {
     const currentPeriodData = (curPeriodRes as any)?.data
     const previousPeriodData = (prevPeriodRes as any)?.data
 
+    if (curEntriesRes.error || prevEntriesRes.error) {
+      return NextResponse.json({ error: 'Failed to load payroll entries' }, { status: 500 })
+    }
+
     if (!currentPeriodData || !previousPeriodData) {
       return NextResponse.json({ error: 'Period not found' }, { status: 404 })
     }
