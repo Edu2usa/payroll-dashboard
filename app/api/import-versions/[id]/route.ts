@@ -24,6 +24,7 @@ export async function POST(
 ) {
   if (!cookies().get('payroll_session'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let saveRequested = false
   try {
     const { actor, expectedVersion } = await request.json()
     if (
@@ -54,6 +55,7 @@ export async function POST(
         },
         { status: 422 },
       )
+    saveRequested = true
     const { data, error } = await supabaseServer.rpc(
       'payroll_restore_version',
       {
@@ -76,7 +78,11 @@ export async function POST(
     return NextResponse.json({ success: true, ...data })
   } catch {
     return NextResponse.json(
-      { error: 'Restore failed; no payroll data was changed.' },
+      {
+        error: saveRequested
+          ? 'The restore could not be confirmed. Check History before trying again.'
+          : 'The version could not be checked. No payroll data changed.',
+      },
       { status: 500 },
     )
   }

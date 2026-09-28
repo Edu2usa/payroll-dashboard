@@ -94,6 +94,7 @@ export function ErrorBox({
   )
 }
 function Provider({ children }: { children: React.ReactNode }) {
+  const path = usePathname()
   const activeRequest = useRef<AbortController | null>(null)
   const [data, setData] = useState<WorkspaceData | null>(null),
     [selected, setSelected] = useState(''),
@@ -168,7 +169,7 @@ function Provider({ children }: { children: React.ReactNode }) {
                   },
                 }}
               >
-                {period && (
+                {period && path !== '/upload' && (
                   <div className="pw-period-bar">
                     <label>
                       Pay period

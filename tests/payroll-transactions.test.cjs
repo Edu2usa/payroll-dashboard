@@ -124,6 +124,115 @@ test('payroll versions are atomic, restorable, conflict checked and private', as
       first_seen: '2026-08-01',
       last_seen: '2026-09-11',
     })
+    const otherPeriod = (
+      await db.query(
+        'select * from payroll_entries where payroll_period_id <> $1',
+        [initial.payrollPeriodId],
+      )
+    ).rows
+    const corrected = structuredClone(payload)
+    corrected.employees[0].employee_id = 100
+    Object.assign(corrected.employees[0].payroll_entry, {
+      double_time_hours: 5,
+      double_time_earnings: 200,
+      total_hours: 85,
+      total_earnings: 1800,
+      net_pay: 1500,
+    })
+    Object.assign(corrected.totals, {
+      total_hours: 85,
+      total_earnings: 1800,
+      total_net_pay: 1500,
+    })
+    const correctedSave = await save(corrected, restore.versionId)
+    const repeated = await save(corrected, correctedSave.versionId)
+    assert.equal(repeated.payrollPeriodId, initial.payrollPeriodId)
+    assert.equal(
+      (await db.query('select count(*) from payroll_periods')).rows[0].count,
+      2,
+    )
+    const current = (
+      await db.query(
+        'select * from payroll_entries where payroll_period_id=$1',
+        [initial.payrollPeriodId],
+      )
+    ).rows
+    assert.equal(
+      current.length,
+      1,
+      'replacement and repeat do not duplicate entries',
+    )
+    assert.equal(Number(current[0].double_time_hours), 5)
+    assert.equal(Number(current[0].total_earnings), 1800)
+    assert.equal(Number(current[0].net_pay), 1500)
+    assert.equal(
+      (
+        await db.query('select employee_id from employees where id=$1', [
+          current[0].employee_id,
+        ])
+      ).rows[0].employee_id,
+      100,
+    )
+    assert.deepEqual(
+      (
+        await db.query(
+          'select payload from payroll_import_versions where id=$1',
+          [initial.versionId],
+        )
+      ).rows[0].payload,
+      payload,
+    )
+    assert.deepEqual(
+      (
+        await db.query(
+          'select * from payroll_entries where payroll_period_id <> $1',
+          [initial.payrollPeriodId],
+        )
+      ).rows,
+      otherPeriod,
+    )
+    // Failure after a valid entry was already written must restore the whole prior version.
+    const partialFailure = structuredClone(corrected)
+    partialFailure.employees.push(structuredClone(payload.employees[0]))
+    partialFailure.employees[1].payroll_entry.net_pay = 1
+    await assert.rejects(
+      save(partialFailure, repeated.versionId),
+      /do not reconcile/,
+    )
+    assert.deepEqual(
+      (
+        await db.query(
+          'select * from payroll_entries where payroll_period_id=$1',
+          [initial.payrollPeriodId],
+        )
+      ).rows,
+      current,
+    )
+    assert.equal(
+      (
+        await db.query(
+          'select active_version_id from payroll_periods where id=$1',
+          [initial.payrollPeriodId],
+        )
+      ).rows[0].active_version_id,
+      repeated.versionId,
+    )
+    await db.query('select payroll_restore_version($1,$2,$3)', [
+      initial.versionId,
+      repeated.versionId,
+      'Test restorer',
+    ])
+    const restoredEntry = (
+      await db.query(
+        'select * from payroll_entries where payroll_period_id=$1',
+        [initial.payrollPeriodId],
+      )
+    ).rows
+    assert.equal(restoredEntry.length, 1)
+    assert.equal(restoredEntry[0].employee_id, before[0].employee_id)
+    assert.equal(Number(restoredEntry[0].total_earnings), 1600)
+    assert.equal(Number(restoredEntry[0].net_pay), 1300)
+    assert.equal(Number(restoredEntry[0].double_time_hours || 0), 0)
     await db.exec('set role anon')
     await assert.rejects(
       db.query('select * from payroll_import_versions'),

@@ -4,9 +4,11 @@ import { createHash } from 'crypto'
 import { supabaseServer } from '@/lib/supabase'
 import { parsePaychexPDF } from '@/lib/pdf-parser'
 import { getPayrollReconciliationIssues } from '@/lib/payroll-reconciliation'
+import { compareImport } from '@/lib/payroll-import-preview'
 export async function POST(request: NextRequest) {
   if (!cookies().get('payroll_session'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let saveRequested = false
   try {
     const form = await request.formData(),
       file = form.get('file')
@@ -39,16 +41,28 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     if (readError) throw readError
     const hash = createHash('sha256').update(buffer).digest('hex')
-    if (form.get('mode') === 'preview')
+    if (form.get('mode') === 'preview') {
+      let previous
+      if (existing) {
+        const { data: version, error } = await supabaseServer
+          .from('payroll_import_versions')
+          .select('payload')
+          .eq('id', existing.active_version_id)
+          .single()
+        if (error || !version) throw new Error('Previous version unavailable')
+        previous = version.payload
+      }
       return NextResponse.json({
         period_start: parsed.period_start,
         period_end: parsed.period_end,
         check_date: parsed.check_date,
         totals: parsed.totals,
+        company_breakdown: parsed.company_breakdown,
         expectedVersion: existing?.active_version_id || null,
-        previousGross: existing?.total_earnings ?? null,
+        previous: compareImport(parsed, previous),
         hash,
       })
+    }
     const actor = form.get('actor')
     if (
       typeof actor !== 'string' ||
@@ -61,6 +75,7 @@ export async function POST(request: NextRequest) {
         { error: 'Preview this file and enter your name before saving.' },
         { status: 400 },
       )
+    saveRequested = true
     const { data, error } = await supabaseServer.rpc('payroll_import_atomic', {
       p_payload: parsed,
       p_actor: actor,
@@ -82,7 +97,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, ...data })
   } catch {
     return NextResponse.json(
-      { error: 'The PDF could not be imported. No payroll data changed.' },
+      {
+        error: saveRequested
+          ? 'The save could not be confirmed. Check History before trying again.'
+          : 'The PDF could not be checked. No payroll data changed. Try previewing it again.',
+      },
       { status: 500 },
     )
   }
