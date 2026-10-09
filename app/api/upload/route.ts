@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createHash } from 'crypto'
+import { checkApiAuth } from '@/lib/auth'
 import { supabaseServer } from '@/lib/supabase'
 import { parsePaychexPDF } from '@/lib/pdf-parser'
 import { getPayrollReconciliationIssues } from '@/lib/payroll-reconciliation'
 import { compareImport } from '@/lib/payroll-import-preview'
 export async function POST(request: NextRequest) {
-  if (!cookies().get('payroll_session'))
+  if (!cookies().get('payroll_session') && !checkApiAuth(request))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   let saveRequested = false
   try {
