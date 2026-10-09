@@ -233,6 +233,16 @@ export default function Imports() {
                     : 'New payroll period'}
                 </span>
               </div>
+              {!item.saved && (
+                <div className="pw-error mb-4" role="status">
+                  <strong>Preview only - not saved yet.</strong>
+                  <span>
+                    This journal will not appear on the Dashboard, History, or
+                    Compare screens until you enter your name and choose Save
+                    payroll below.
+                  </span>
+                </div>
+              )}
               <ImportFigures preview={item.preview} />
               <p className="mb-4">
                 {item.preview.previous
