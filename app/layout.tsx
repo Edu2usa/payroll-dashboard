@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Fira_Sans, Fira_Code } from 'next/font/google'
 import './globals.css'
 import { PayrollWorkspace } from '@/components/PayrollWorkspace'
@@ -30,7 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${firaSans.variable} ${firaCode.variable}`}>
       <body className="font-sans antialiased">
-        <PayrollWorkspace>{children}</PayrollWorkspace>
+        <Suspense fallback={<main className="p-8">Loading payroll workspace...</main>}>
+          <PayrollWorkspace>{children}</PayrollWorkspace>
+        </Suspense>
       </body>
     </html>
   )
