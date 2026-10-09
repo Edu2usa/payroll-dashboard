@@ -70,6 +70,14 @@ export function previousPeriod<
       .sort((a, b) => b.period_end.localeCompare(a.period_end))[0] || null
   )
 }
+/** The comparison picker must never offer the payroll already being reviewed. */
+export function comparisonPeriods<
+  T extends Pick<PayrollPeriod, 'id' | 'period_end'>,
+>(period: T, periods: T[]) {
+  return periods
+    .filter((candidate) => candidate.id !== period.id)
+    .sort((a, b) => b.period_end.localeCompare(a.period_end))
+}
 export function aggregate(entries: Partial<PayrollEntry>[]) {
   const totals: Record<string, number> = {}
   for (const e of entries)

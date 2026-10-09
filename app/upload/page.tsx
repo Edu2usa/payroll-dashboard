@@ -20,7 +20,11 @@ type Item = {
   file: File
   preview?: ImportPreview
   error?: string
-  saved?: string
+  saved?: {
+    payrollPeriodId: string
+    versionId: string
+    employeeCount: number
+  }
 }
 const totalRows = [
   ['total_persons', 'Employees', number],
@@ -139,7 +143,7 @@ export default function Imports() {
       setItems((old) =>
         old.map((v, i) =>
           i === index
-            ? { ...v, saved: result.payrollPeriodId, error: undefined }
+            ? { ...v, saved: result, error: undefined }
             : v,
         ),
       )
@@ -259,16 +263,29 @@ export default function Imports() {
                 </p>
               )}
               {item.saved ? (
-                <div className="pw-actions">
-                  <span className="pw-badge ok">
-                    ✓ Saved successfully — totals updated
+                <div className="pw-actions" role="status">
+                  <span className="pw-badge ok">✓ Saved and recorded</span>
+                  <span>
+                    {item.preview.previous
+                      ? 'This corrected the saved payroll for these dates; it was not added a second time.'
+                      : 'This is now a saved payroll period.'}
                   </span>
+                  <span>{item.saved.employeeCount} employees recorded</span>
                   <Link
                     className="pw-button"
-                    href={'/source/' + item.saved}
+                    href={'/source/' + item.saved.payrollPeriodId}
                     onClick={() => refresh()}
                   >
                     View saved payroll
+                  </Link>
+                  <Link
+                    className="pw-button"
+                    href={'/comparison?current=' + item.saved.payrollPeriodId}
+                  >
+                    Compare with another payroll
+                  </Link>
+                  <Link className="pw-button" href="/history">
+                    View import history
                   </Link>
                   <button onClick={refresh}>Refresh workspace</button>
                 </div>

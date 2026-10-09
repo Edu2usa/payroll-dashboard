@@ -122,6 +122,7 @@ export default function History() {
                 <th>Net</th>
                 <th>Journal</th>
                 <th>Worth checking</th>
+                <th>Compare</th>
               </tr>
             </thead>
             <tbody>
@@ -146,6 +147,9 @@ export default function History() {
                     <Link href="/discrepancies" onClick={() => setPeriod(p.id)}>
                       {p.discrepancy_count + ' discrepancies'}
                     </Link>
+                  </td>
+                  <td>
+                    <Link href={'/comparison?current=' + p.id}>Compare</Link>
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,7 @@ const { buildAlerts } = require('../lib/payroll-alerts.ts')
 const {
   dateOnly,
   previousPeriod,
+  comparisonPeriods,
   contributions,
   csvText,
 } = require('../lib/payroll-domain.ts')
@@ -35,6 +36,18 @@ test('backdated payroll uses its immediate predecessor, never a later payroll', 
   ]
   assert.equal(previousPeriod(periods[1], periods).id, 'old')
   assert.equal(previousPeriod(periods[2], periods), null)
+})
+test('comparison choices exclude the payroll currently being reviewed', () => {
+  const current = { id: 'current', period_end: '2026-10-15' }
+  const options = comparisonPeriods(current, [
+    current,
+    { id: 'older', period_end: '2026-09-30' },
+    { id: 'newer', period_end: '2026-10-31' },
+  ])
+  assert.deepEqual(
+    options.map((period) => period.id),
+    ['newer', 'older'],
+  )
 })
 test('salary and multiple-rate totals do not create false earnings anomalies', () => {
   assert.equal(

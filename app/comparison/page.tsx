@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { usePayroll, PageTitle, Panel } from '@/components/PayrollWorkspace'
 import {
   Summary,
@@ -9,14 +10,15 @@ import {
   PeriodStatus,
 } from '@/components/PayrollPanels'
 import {
-  previousPeriod,
+  comparisonPeriods,
   periodLabel,
   money,
   dateOnly,
 } from '@/lib/payroll-domain'
 export default function Comparison() {
   const { data, period } = usePayroll(),
-    [previousId, setPreviousId] = useState('')
+    [previousId, setPreviousId] = useState(''),
+    searchParams = useSearchParams()
   if (!period)
     return (
       <PageTitle
@@ -24,24 +26,30 @@ export default function Comparison() {
         description="Import at least two journals to compare periods."
       />
     )
+  const current =
+    data.periods.find((p) => p.id === searchParams.get('current')) || period
+  const choices = comparisonPeriods(current, data.periods)
   const previous =
-    data.periods.find((p) => p.id === previousId) ||
-    previousPeriod(period, data.periods)
+    choices.find((p) => p.id === previousId) ||
+    choices.find((p) => p.id === searchParams.get('previous')) ||
+    choices.find((p) => p.period_end < current.period_end) ||
+    choices[0] ||
+    null
   return (
     <>
       <PageTitle
         title="Compare payrolls"
-        description="Explain the change in hours, earnings, deductions and take-home pay."
+        description="Compare the selected payroll with a different saved pay period."
       />
       <div className="pw-toolbar">
         <label>
-          Compare selected payroll to
+          Reviewing {periodLabel(current)}. Compare it to
           <select
             value={previous?.id || ''}
             onChange={(e) => setPreviousId(e.target.value)}
           >
             <option value="">Choose a period</option>
-            {data.periods.map((p) => (
+            {choices.map((p) => (
               <option key={p.id} value={p.id}>
                 {periodLabel(p)}
               </option>
@@ -50,15 +58,13 @@ export default function Comparison() {
         </label>
       </div>
       {!previous ? (
-        <p className="pw-empty">Choose another imported payroll to compare.</p>
-      ) : previous.id === period.id ? (
-        <div className="pw-error" role="status">
-          Choose two different payroll periods. No comparison is shown for the
-          same period.
-        </div>
+        <p className="pw-empty">
+          This payroll is saved, but there is not another pay period to compare
+          yet. Import a different date range, then return here.
+        </p>
       ) : (
         <>
-          <Summary period={period} />
+          <Summary period={current} />
           <Panel
             title="Comparison period"
             description={
@@ -74,9 +80,9 @@ export default function Comparison() {
               <span>{previous.total_persons} employees</span>
             </div>
           </Panel>
-          <Changes current={period} previous={previous} />
-          <Breakdown current={period} previous={previous} />
-          <Taxes current={period} previous={previous} />
+          <Changes current={current} previous={previous} />
+          <Breakdown current={current} previous={previous} />
+          <Taxes current={current} previous={previous} />
         </>
       )}
     </>
