@@ -7,7 +7,7 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Sidebar } from './Sidebar'
 import { dateOnly, dateTime, periodLabel, csvText } from '@/lib/payroll-domain'
@@ -94,7 +94,8 @@ export function ErrorBox({
   )
 }
 function Provider({ children }: { children: React.ReactNode }) {
-  const path = usePathname()
+  const path = usePathname(),
+    searchParams = useSearchParams()
   const activeRequest = useRef<AbortController | null>(null)
   const [data, setData] = useState<WorkspaceData | null>(null),
     [selected, setSelected] = useState(''),
@@ -125,7 +126,10 @@ function Provider({ children }: { children: React.ReactNode }) {
     return () => activeRequest.current?.abort()
   }, [refresh])
   const period =
-    data?.periods.find((p) => p.id === selected) || data?.periods[0] || null
+    data?.periods.find((p) => p.id === searchParams.get('period')) ||
+    data?.periods.find((p) => p.id === selected) ||
+    data?.periods[0] ||
+    null
   return (
     <div className="payroll-workspace">
       <a className="pw-skip" href="#payroll-main">

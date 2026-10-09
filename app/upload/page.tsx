@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   usePayroll,
   PageTitle,
@@ -101,23 +102,38 @@ function ImportFigures({ preview }: { preview: ImportPreview }) {
 export default function Imports() {
   const { refresh } = usePayroll(),
     [items, setItems] = useState<Item[]>([]),
-    [actor, setActor] = useState(''),
-    [busy, setBusy] = useState(false)
-  async function previews(files: File[]) {
+    [busy, setBusy] = useState(false),
+    router = useRouter()
+  async function imports(files: File[]) {
     setBusy(true)
     const next: Item[] = files.map((file) => ({ file }))
     setItems(next)
+    let latestPeriodId = ''
     for (let i = 0; i < files.length; i++) {
-      const form = new FormData()
-      form.set('file', files[i])
-      form.set('mode', 'preview')
       try {
+        const previewForm = new FormData()
+        previewForm.set('file', files[i])
+        previewForm.set('mode', 'preview')
+        const preview = await requestJSON('/api/upload', {
+          method: 'POST',
+          body: previewForm,
+        })
+        next[i] = { file: files[i], preview }
+        setItems([...next])
+        const saveForm = new FormData()
+        saveForm.set('file', files[i])
+        saveForm.set('actor', 'Dashboard import')
+        saveForm.set('hash', preview.hash)
+        saveForm.set('expectedVersion', preview.expectedVersion || '')
+        const result = await requestJSON('/api/upload', {
+          method: 'POST',
+          body: saveForm,
+        })
+        latestPeriodId = result.payrollPeriodId
         next[i] = {
           file: files[i],
-          preview: await requestJSON('/api/upload', {
-            method: 'POST',
-            body: form,
-          }),
+          preview,
+          saved: result,
         }
       } catch (e) {
         next[i] = { file: files[i], error: (e as Error).message }
@@ -125,54 +141,27 @@ export default function Imports() {
       setItems([...next])
     }
     setBusy(false)
-  }
-  async function save(index: number) {
-    const item = items[index]
-    if (!item.preview) return
-    setBusy(true)
-    const form = new FormData()
-    form.set('file', item.file)
-    form.set('actor', actor)
-    form.set('hash', item.preview.hash)
-    form.set('expectedVersion', item.preview.expectedVersion || '')
-    try {
-      const result = await requestJSON('/api/upload', {
-        method: 'POST',
-        body: form,
-      })
-      setItems((old) =>
-        old.map((v, i) =>
-          i === index
-            ? { ...v, saved: result, error: undefined }
-            : v,
-        ),
-      )
+    if (latestPeriodId) {
       await refresh()
-    } catch (e) {
-      setItems((old) =>
-        old.map((v, i) =>
-          i === index ? { ...v, error: (e as Error).message } : v,
-        ),
-      )
-    } finally {
-      setBusy(false)
+      router.push('/dashboard?period=' + latestPeriodId + '&imported=1')
     }
   }
   return (
     <>
       <PageTitle
         title="Import payroll journals"
-        description="Import a new payroll or replace an existing period with a corrected Paychex journal."
+        description="Choose a complete Paychex journal and it will be checked, saved, and opened on the Dashboard."
       />
       <Panel
         title="Choose Paychex PDFs"
         description="Use the complete payroll journal with all employees and company totals, up to 4 MB per PDF."
       >
         <p className="mb-4">
-          Correct payroll in Paychex, generate the complete PDF again, and
-          select it here. Matching start and end dates replace that period; a
-          different date range creates a new period. The filename does not
-          control this. Do not use a supplement containing only the corrections.
+          Choose the complete Paychex journal. The app checks the figures,
+          saves it to the database, and opens the Dashboard automatically.
+          Matching start and end dates safely replace that period; a different
+          date range creates a new period. Do not use a supplement containing
+          only corrections.
         </p>
         <label>
           Journal files
@@ -181,27 +170,18 @@ export default function Imports() {
             accept=".pdf,application/pdf"
             multiple
             disabled={busy}
-            onChange={(e) => previews(Array.from(e.target.files || []))}
-          />
-        </label>
-        <label className="mt-4">
-          Your name
-          <input
-            value={actor}
-            onChange={(e) => setActor(e.target.value)}
-            maxLength={120}
-            placeholder="Recorded with the import"
+            onChange={(e) => imports(Array.from(e.target.files || []))}
           />
         </label>
         <p className="mt-3">
-          Names are entered by the importer under the shared login. Source text
-          and every saved version are retained. Keep the original PDFs with your
-          payroll records.
+          Valid imports are recorded as Dashboard import. Source text and every
+          saved version are retained. Keep the original PDFs with your payroll
+          records.
         </p>
       </Panel>
       {busy && (
         <p role="status" className="pw-empty">
-          Checking or saving journal…
+          Checking and importing journal…
         </p>
       )}
       {items.map((item, i) => (
@@ -211,7 +191,7 @@ export default function Imports() {
               {item.error}
               <button
                 disabled={busy}
-                onClick={() => previews(items.map((v) => v.file))}
+                onClick={() => imports(items.map((v) => v.file))}
               >
                 Preview files again
               </button>
@@ -233,21 +213,11 @@ export default function Imports() {
                     : 'New payroll period'}
                 </span>
               </div>
-              {!item.saved && (
-                <div className="pw-error mb-4" role="status">
-                  <strong>Preview only - not saved yet.</strong>
-                  <span>
-                    This journal will not appear on the Dashboard, History, or
-                    Compare screens until you enter your name and choose Save
-                    payroll below.
-                  </span>
-                </div>
-              )}
               <ImportFigures preview={item.preview} />
               <p className="mb-4">
                 {item.preview.previous
-                  ? 'Saving replaces all employee entries for these dates. Amounts are not added to the existing payroll. Even the same PDF can be saved again without doubling totals; each save keeps a version in History.'
-                  : 'No payroll with these start and end dates is saved yet. Saving creates one new payroll period.'}
+                  ? 'This import replaces all employee entries for these dates. Amounts are not added to the existing payroll. Each import keeps a version in History.'
+                  : 'No payroll with these start and end dates was saved yet. This import creates one new payroll period.'}
               </p>
               {item.preview.previous && (
                 <p className="mb-4">
@@ -299,17 +269,7 @@ export default function Imports() {
                   </Link>
                   <button onClick={refresh}>Refresh workspace</button>
                 </div>
-              ) : (
-                <button
-                  className="pw-primary"
-                  disabled={busy || !actor.trim()}
-                  onClick={() => save(i)}
-                >
-                  {item.preview.expectedVersion
-                    ? 'Save replacement version'
-                    : 'Save payroll'}
-                </button>
-              )}
+              ) : null}
             </>
           )}
         </Panel>

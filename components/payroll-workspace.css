@@ -352,6 +352,18 @@
   padding: 28px 0;
   color: #687182;
 }
+.pw-success {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid #b8e5d1;
+  border-radius: 8px;
+  background: #edf7f2;
+  color: #166749;
+}
 .pw-source {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   ResponsiveContainer,
   AreaChart,
@@ -23,7 +24,8 @@ import { PayrollHistoryCharts } from '@/components/PayrollHistoryCharts'
 import { PayrollComposition } from '@/components/PayrollComposition'
 import { PayrollSignals } from '@/components/PayrollSignals'
 export default function Dashboard() {
-  const { data, period, name } = usePayroll()
+  const { data, period, name } = usePayroll(),
+    searchParams = useSearchParams()
   if (!period)
     return (
       <>
@@ -58,6 +60,18 @@ export default function Dashboard() {
         title="Payroll overview"
         description="Understand this payroll, spot unusual changes, and trace every total to its journal."
       />
+      {searchParams.get('imported') === '1' && (
+        <div className="pw-success" role="status">
+          <strong>Payroll imported and recorded.</strong>
+          <span>
+            Showing {dateOnly(period.period_start)} through{' '}
+            {dateOnly(period.period_end)}.
+          </span>
+          <Link className="pw-button" href={'/comparison?current=' + period.id}>
+            Compare this payroll
+          </Link>
+        </div>
+      )}
       <Summary period={period} />
       <PayrollSignals period={period} />
       <PayrollComposition period={period} />
